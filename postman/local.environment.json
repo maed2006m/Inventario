@@ -1,0 +1,16 @@
+{
+  "name": "Inventario - Local",
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api",
+      "enabled": true
+    },
+    {
+      "key": "sinToken",
+      "value": "",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment"
+}

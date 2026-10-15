@@ -5,11 +5,10 @@ import co.edu.javeriana.inventario.model.EstadoStock;
 import java.math.BigDecimal;
 
 /**
- * Datos de un producto que la API devuelve al cliente (RF-12, RF-20, RF-23).
+ * Producto tal como lo devuelve la API.
  *
- * existencia y estado no se guardan en la base: el servicio los calcula
- * a partir de los movimientos (RN-01) y del stock mínimo (RN-10).
- * Del proveedor solo viajan su id y su nombre.
+ * existencia y estado se calculan al momento de responder; no se
+ * guardan en ninguna tabla (RN-01, RN-10).
  */
 public record ProductoResponse(
         Long id,
@@ -23,5 +22,6 @@ public record ProductoResponse(
         BigDecimal precioVenta,
         boolean activo,
         Integer existencia,
-        EstadoStock estado) {
+        EstadoStock estado
+) {
 }

@@ -1,8 +1,8 @@
 package co.edu.javeriana.inventario.exception;
 
 /**
- * Se lanza cuando un recurso buscado por su identificador no existe
- * (producto, proveedor, usuario). El manejador global la traduce a HTTP 404.
+ * Se lanza cuando se pide un recurso que no existe.
+ * El GlobalExceptionHandler la traduce a 404 Not Found.
  */
 public class ResourceNotFoundException extends RuntimeException {
 

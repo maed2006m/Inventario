@@ -12,53 +12,49 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-/**
- * Acceso a datos de movimientos de inventario.
- * La existencia de un producto no se guarda: se calcula aquí sumando entradas y restando salidas (RN-01).
- */
-public interface MovimientoRepository extends JpaRepository<Movimiento, Long>, JpaSpecificationExecutor<Movimiento> {
-
-    /** Resultado de la consulta agrupada: una fila por producto con su existencia. */
-    interface ExistenciaView {
-        Long getProductoId();
-        Long getExistencia();
-    }
+public interface MovimientoRepository extends JpaRepository<Movimiento, Long>,
+                                              JpaSpecificationExecutor<Movimiento> {
 
     /**
-     * Existencia de UN producto = suma de entradas menos suma de salidas.
-     * coalesce devuelve 0 cuando el producto aún no tiene movimientos.
+     * RN-01, RF-20: la existencia de UN producto.
+     *
+     * Suma las entradas y resta las salidas. coalesce devuelve 0
+     * cuando el producto todavia no tiene movimientos, en lugar de null.
      */
     @Query("""
-        select coalesce(sum(case when m.tipo = co.edu.javeriana.inventario.model.TipoMovimiento.ENTRADA
-                                 then m.cantidad else -m.cantidad end), 0L)
-        from Movimiento m
-        where m.producto.id = :productoId
-        """)
+           select coalesce(sum(case when m.tipo = co.edu.javeriana.inventario.model.TipoMovimiento.ENTRADA
+                                    then m.cantidad else -m.cantidad end), 0)
+           from Movimiento m
+           where m.producto.id = :productoId
+           """)
     long calcularExistencia(@Param("productoId") Long productoId);
 
     /**
-     * Existencia de TODOS los productos en una sola consulta agrupada (RNF-06).
-     * Evita hacer una consulta por producto al listar el catálogo.
-     * Los productos sin movimientos no aparecen: el servicio les asigna 0.
+     * Las existencias de TODO el catalogo en una sola consulta agrupada.
+     *
+     * Es lo que permite listar los productos con su existencia sin
+     * hacer una consulta por producto (RNF-06).
      */
     @Query("""
-        select m.producto.id as productoId,
-               sum(case when m.tipo = co.edu.javeriana.inventario.model.TipoMovimiento.ENTRADA
-                        then m.cantidad else -m.cantidad end) as existencia
-        from Movimiento m
-        group by m.producto.id
-        """)
+           select m.producto.id as productoId,
+                  sum(case when m.tipo = co.edu.javeriana.inventario.model.TipoMovimiento.ENTRADA
+                           then m.cantidad else -m.cantidad end) as existencia
+           from Movimiento m
+           group by m.producto.id
+           """)
     List<ExistenciaView> existenciasTodos();
 
-    /** Historial filtrable (Specification) y paginado, trayendo producto, proveedor y usuario en un solo JOIN. */
+    /**
+     * Historial paginado y filtrable (RF-27, RF-28).
+     *
+     * El @EntityGraph trae producto, proveedor y usuario en la misma
+     * consulta: sin el, cada fila del historial dispararia tres
+     * consultas extra al construir la respuesta.
+     */
     @Override
     @EntityGraph(attributePaths = {"producto", "producto.proveedor", "usuario"})
     Page<Movimiento> findAll(Specification<Movimiento> spec, Pageable pageable);
 
-    /** Movimientos de un producto, del más reciente al más antiguo según el Pageable (RF-11). */
-    @EntityGraph(attributePaths = {"producto", "producto.proveedor", "usuario"})
-    Page<Movimiento> findByProductoId(Long productoId, Pageable pageable);
-
-    /** RN-11: saber si un producto ya tiene historial, para impedir cambiar su SKU. */
+    /** RN-11: impide cambiar el SKU de un producto que ya tiene historial. */
     boolean existsByProductoId(Long productoId);
 }

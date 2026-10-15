@@ -1,0 +1,22 @@
+# Perfil de pruebas de integracion.
+#
+# Testcontainers levanta un PostgreSQL real y @ServiceConnection
+# inyecta su url, usuario y contrasena automaticamente, por eso
+# aqui no se configura el datasource.
+#
+# Diferencia clave con el perfil dev: flyway.locations NO incluye
+# classpath:db/demo. Las pruebas deben correr sobre una base vacia
+# y crear sus propios datos, no depender de los datos de demostracion.
+spring:
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+  flyway:
+    locations: classpath:db/migration
+
+app:
+  jwt:
+    secret: secreto-solo-para-pruebas-minimo-32-caracteres
+    expiracion-minutos: 120

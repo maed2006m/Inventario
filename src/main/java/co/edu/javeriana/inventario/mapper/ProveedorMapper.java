@@ -26,19 +26,18 @@ public class ProveedorMapper {
     }
 
     /** Convierte la entidad en la respuesta que ve el cliente (RF-05). */
-    public ProveedorResponse aRespuesta(Proveedor proveedor) {
-        return new ProveedorResponse(
-                proveedor.getId(),
-                proveedor.getNombre(),
-                proveedor.getNit(),
-                proveedor.getTelefono(),
-                proveedor.getEmail(),
-                proveedor.getDireccion(),
-                proveedor.getTiempoEntregaDias(),
-                proveedor.isActivo(),
-                proveedor.getCreadoEn(),
-                proveedor.getActualizadoEn());
-    }
+public ProveedorResponse aRespuesta(Proveedor proveedor, long productosActivos) {
+    return new ProveedorResponse(
+            proveedor.getId(),
+            proveedor.getNombre(),
+            proveedor.getNit(),
+            proveedor.getTelefono(),
+            proveedor.getEmail(),
+            proveedor.getDireccion(),
+            proveedor.getTiempoEntregaDias(),
+            proveedor.isActivo(),
+            productosActivos);
+}
 
     /** Los seis campos que el cliente puede enviar. Se escribe una sola vez para crear y editar. */
     private void copiarCampos(ProveedorRequest request, Proveedor proveedor) {
