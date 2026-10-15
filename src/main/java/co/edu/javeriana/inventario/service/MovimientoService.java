@@ -4,13 +4,7 @@ import co.edu.javeriana.inventario.dto.MovimientoRequest;
 import co.edu.javeriana.inventario.dto.MovimientoResponse;
 import co.edu.javeriana.inventario.exception.BusinessRuleException;
 import co.edu.javeriana.inventario.exception.ResourceNotFoundException;
-import co.edu.javeriana.inventario.exception.StockInsuficienteException;
-import co.edu.javeriana.inventario.mapper.MovimientoMapper;
-import co.edu.javeriana.inventario.model.MotivoMovimiento;
-import co.edu.javeriana.inventario.model.Movimiento;
-import co.edu.javeriana.inventario.model.Producto;
-import co.edu.javeriana.inventario.model.TipoMovimiento;
-import co.edu.javeriana.inventario.model.Usuario;
+import co.edu.javeriana.inventario.model.*;
 import co.edu.javeriana.inventario.repository.MovimientoRepository;
 import co.edu.javeriana.inventario.repository.ProductoRepository;
 import co.edu.javeriana.inventario.repository.UsuarioRepository;
@@ -21,10 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 
 /**
- * Registro de movimientos de inventario (RF-14 a RF-22).
- * Aplica RN-02, RN-04, RN-08, RN-13 y RN-14.
+ * Nucleo del sistema: registro de entradas y salidas.
  *
- * Los movimientos son inmutables (RN-05): esta clase solo los crea, nunca los edita ni los borra.
+ * Aqui viven las reglas RN-02, RN-03, RN-04, RN-08, RN-13 y RN-14.
+ * Es la clase que mas peso tiene en las pruebas unitarias.
  */
 @Service
 @RequiredArgsConstructor
@@ -33,75 +27,133 @@ public class MovimientoService {
     private final MovimientoRepository movimientos;
     private final ProductoRepository productos;
     private final UsuarioRepository usuarios;
-    private final MovimientoMapper mapper;
 
     /**
-     * Registra una entrada o una salida y devuelve la existencia que quedó después de ella.
+     * Registra un movimiento y devuelve el saldo resultante.
      *
-     * @param request  datos enviados por el cliente
-     * @param username usuario autenticado, tomado del token (nunca del cuerpo de la petición)
+     * @Transactional es obligatorio: la lectura de la existencia y la
+     * insercion del movimiento deben ocurrir dentro de la misma
+     * transaccion, o el bloqueo de RN-14 no sirve de nada.
      */
     @Transactional
-    public MovimientoResponse registrar(MovimientoRequest request, String username) {
-        validarMotivo(request.tipo(), request.motivo());                                  // RN-04
+    public MovimientoResponse registrar(MovimientoRequest req, String username) {
 
-        // RN-14: bloquea la fila del producto hasta que termine la transacción.
-        Producto producto = productos.findByIdForUpdate(request.productoId())
+        /*
+         * RN-14: bloqueo pesimista.
+         *
+         * findByIdForUpdate genera SELECT ... FOR UPDATE y retiene la
+         * fila del producto hasta que termine esta transaccion. Si dos
+         * ventas del mismo producto llegan a la vez, la segunda espera
+         * aqui y luego lee la existencia ya actualizada.
+         *
+         * Sin este bloqueo ambas leerian el mismo saldo, ambas pasarian
+         * la validacion de RN-02 y el inventario quedaria negativo.
+         */
+        Producto producto = productos.findByIdForUpdate(req.productoId())
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "El producto " + request.productoId() + " no existe."));
+                        "El producto " + req.productoId() + " no existe."));
 
-        validarProductoHabilitado(producto, request.motivo());                            // RN-08
+        validarMotivo(req.tipo(), req.motivo());              // RN-04
+        validarProductoHabilitado(producto, req.motivo());    // RN-08
 
-        // Con la fila bloqueada, esta existencia es la real: nadie la puede cambiar mientras tanto.
         int disponible = (int) movimientos.calcularExistencia(producto.getId());
 
-        if (request.tipo() == TipoMovimiento.SALIDA && request.cantidad() > disponible) { // RN-02
-            throw new StockInsuficienteException(producto.getNombre(), disponible, request.cantidad());
+        // RN-02, RF-21, RF-22: una salida nunca deja el saldo negativo.
+        if (req.tipo() == TipoMovimiento.SALIDA && req.cantidad() > disponible) {
+            throw new BusinessRuleException(
+                    "La salida de " + req.cantidad() + " unidades de '" + producto.getNombre()
+                            + "' supera la existencia disponible (" + disponible + ").",
+                    disponible > 0
+                            ? "Reduzca la cantidad a " + disponible
+                              + " o menos, o registre antes una entrada de compra."
+                            : "El producto esta agotado: registre antes una entrada de compra.");
         }
 
         Usuario usuario = usuarios.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "El usuario '" + username + "' no existe."));
+                        "El usuario " + username + " no existe."));
 
-        Movimiento movimiento = mapper.aEntidad(request, producto, usuario,
-                valorPorDefecto(request, producto));                                      // RN-13
-        movimientos.save(movimiento);
+        Movimiento m = new Movimiento();
+        m.setProducto(producto);
+        m.setTipo(req.tipo());
+        m.setMotivo(req.motivo());
+        m.setCantidad(req.cantidad());
+        m.setValorUnitario(valorPorDefecto(req, producto));   // RN-13
+        m.setObservacion(req.observacion());
+        m.setUsuario(usuario);
 
-        int resultante = request.tipo() == TipoMovimiento.ENTRADA
-                ? disponible + request.cantidad()
-                : disponible - request.cantidad();
+        movimientos.save(m);
 
-        return mapper.aRespuesta(movimiento, resultante);
+        int resultante = req.tipo() == TipoMovimiento.ENTRADA
+                ? disponible + req.cantidad()
+                : disponible - req.cantidad();
+
+        return aRespuesta(m, resultante);
     }
 
-    /** RN-04: las entradas solo son COMPRA; las salidas son VENTA, AVERIA o VENCIMIENTO. */
+    /**
+     * RN-04: tipo y motivo deben corresponder.
+     *
+     * Una entrada solo puede ser una COMPRA. Una salida puede ser
+     * VENTA, AVERIA o VENCIMIENTO, pero nunca COMPRA.
+     */
     private void validarMotivo(TipoMovimiento tipo, MotivoMovimiento motivo) {
-        boolean coherente = (tipo == TipoMovimiento.ENTRADA && motivo == MotivoMovimiento.COMPRA)
+
+        boolean valido = (tipo == TipoMovimiento.ENTRADA && motivo == MotivoMovimiento.COMPRA)
                 || (tipo == TipoMovimiento.SALIDA && motivo != MotivoMovimiento.COMPRA);
-        if (!coherente) {
+
+        if (!valido) {
             throw new BusinessRuleException(
                     "El motivo " + motivo + " no corresponde a una " + tipo + ".",
                     "Use COMPRA para entradas y VENTA, AVERIA o VENCIMIENTO para salidas.");
         }
     }
 
-    /** RN-08: un producto deshabilitado solo admite bajas por avería o vencimiento. */
-    private void validarProductoHabilitado(Producto producto, MotivoMovimiento motivo) {
+    /**
+     * RN-08: un producto deshabilitado no admite compras ni ventas,
+     * pero si bajas por averia o vencimiento.
+     *
+     * El motivo es practico: si se deja de comercializar un producto,
+     * el remanente que quede en bodega todavia debe poder darse de
+     * baja cuando se dane o se venza.
+     */
+    private void validarProductoHabilitado(Producto p, MotivoMovimiento motivo) {
+
         boolean esBaja = motivo == MotivoMovimiento.AVERIA || motivo == MotivoMovimiento.VENCIMIENTO;
-        if (!producto.isActivo() && !esBaja) {
+
+        if (!p.isActivo() && !esBaja) {
             throw new BusinessRuleException(
-                    "El producto '" + producto.getNombre() + "' está deshabilitado.",
-                    "Habilítelo para registrar compras o ventas; solo se admiten bajas por avería o vencimiento.");
+                    "El producto '" + p.getNombre() + "' esta deshabilitado.",
+                    "Habilitelo para registrar compras o ventas; solo se admiten bajas por averia o vencimiento.");
         }
     }
 
-    /** RN-13: valor enviado, o precio de venta para ventas, o costo para compras y bajas. */
-    private BigDecimal valorPorDefecto(MovimientoRequest request, Producto producto) {
-        if (request.valorUnitario() != null) {
-            return request.valorUnitario();
+    /**
+     * RN-13: valor unitario por defecto.
+     *
+     * Una venta se valora al precio de venta; cualquier otro
+     * movimiento, al costo del producto.
+     */
+    private BigDecimal valorPorDefecto(MovimientoRequest req, Producto p) {
+        if (req.valorUnitario() != null) {
+            return req.valorUnitario();
         }
-        return request.motivo() == MotivoMovimiento.VENTA
-                ? producto.getPrecioVenta()
-                : producto.getCostoUnitario();
+        return req.motivo() == MotivoMovimiento.VENTA ? p.getPrecioVenta() : p.getCostoUnitario();
+    }
+
+    private MovimientoResponse aRespuesta(Movimiento m, int existenciaResultante) {
+        return new MovimientoResponse(
+                m.getId(),
+                m.getProducto().getId(),
+                m.getProducto().getNombre(),
+                m.getProducto().getProveedor().getNombre(),
+                m.getTipo(),
+                m.getMotivo(),
+                m.getCantidad(),
+                m.getValorUnitario(),
+                m.getObservacion(),
+                m.getUsuario().getUsername(),
+                m.getFecha(),
+                existenciaResultante);
     }
 }

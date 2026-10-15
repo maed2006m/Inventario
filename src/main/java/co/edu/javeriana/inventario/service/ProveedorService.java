@@ -4,12 +4,10 @@ import co.edu.javeriana.inventario.dto.ProveedorRequest;
 import co.edu.javeriana.inventario.dto.ProveedorResponse;
 import co.edu.javeriana.inventario.exception.BusinessRuleException;
 import co.edu.javeriana.inventario.exception.ResourceNotFoundException;
-import co.edu.javeriana.inventario.mapper.ProveedorMapper;
 import co.edu.javeriana.inventario.model.Proveedor;
 import co.edu.javeriana.inventario.repository.ProductoRepository;
 import co.edu.javeriana.inventario.repository.ProveedorRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,7 +15,6 @@ import java.util.List;
 
 /**
  * Reglas de negocio de proveedores (RF-01 a RF-05).
- * Aplica RN-09 (NIT único) y RN-07 (eliminación lógica con protección de productos activos).
  */
 @Service
 @RequiredArgsConstructor
@@ -25,67 +22,102 @@ public class ProveedorService {
 
     private final ProveedorRepository proveedores;
     private final ProductoRepository productos;
-    private final ProveedorMapper mapper;
 
-    /** Lista los proveedores ordenados por nombre. Con soloActivos=true oculta los inactivos (RF-05). */
+    @Transactional
+    public ProveedorResponse crear(ProveedorRequest req) {
+
+        // RN-09: el NIT identifica al proveedor y no se puede repetir.
+        if (proveedores.existsByNit(req.nit())) {
+            throw new BusinessRuleException(
+                    "Ya existe un proveedor con el NIT " + req.nit() + ".",
+                    "Verifique el NIT o busque el proveedor existente.");
+        }
+
+        Proveedor p = new Proveedor();
+        aplicar(p, req);
+
+        return aRespuesta(proveedores.save(p), 0);
+    }
+
     @Transactional(readOnly = true)
     public List<ProveedorResponse> listar(boolean soloActivos) {
+
         List<Proveedor> lista = soloActivos
-                ? proveedores.findByActivoTrueOrderByNombreAsc()
-                : proveedores.findAll(Sort.by("nombre"));
-        return lista.stream().map(mapper::aRespuesta).toList();
+                ? proveedores.findByActivoTrueOrderByNombre()
+                : proveedores.findAllByOrderByNombre();
+
+        return lista.stream()
+                .map(p -> aRespuesta(p, productos.countByProveedorIdAndActivoTrue(p.getId())))
+                .toList();
     }
 
-    /** Consulta un proveedor por id (RF-05). */
     @Transactional(readOnly = true)
     public ProveedorResponse obtener(Long id) {
-        return mapper.aRespuesta(buscar(id));
+        Proveedor p = buscarOFallar(id);
+        return aRespuesta(p, productos.countByProveedorIdAndActivoTrue(id));
     }
 
-    /** Crea un proveedor activo. RN-09: el NIT no puede estar repetido (RF-01). */
     @Transactional
-    public ProveedorResponse crear(ProveedorRequest request) {
-        if (proveedores.existsByNit(request.nit())) {
-            throw new BusinessRuleException(
-                    "Ya existe un proveedor con el NIT " + request.nit() + ".",
-                    "Verifique el NIT o edite el proveedor existente.");
-        }
-        Proveedor guardado = proveedores.save(mapper.aEntidad(request));
-        return mapper.aRespuesta(guardado);
-    }
+    public ProveedorResponse actualizar(Long id, ProveedorRequest req) {
 
-    /** Edita los datos de un proveedor. RN-09: el NIT no puede coincidir con el de otro proveedor (RF-02). */
-    @Transactional
-    public ProveedorResponse actualizar(Long id, ProveedorRequest request) {
-        Proveedor proveedor = buscar(id);
-        if (proveedores.existsByNitAndIdNot(request.nit(), id)) {
+        Proveedor p = buscarOFallar(id);
+
+        // Mismo control de unicidad, excluyendo el propio registro.
+        if (proveedores.existsByNitAndIdNot(req.nit(), id)) {
             throw new BusinessRuleException(
-                    "El NIT " + request.nit() + " ya pertenece a otro proveedor.",
-                    "Use un NIT distinto o revise el proveedor que lo tiene registrado.");
+                    "Ya existe otro proveedor con el NIT " + req.nit() + ".",
+                    "Use un NIT distinto.");
         }
-        mapper.actualizar(proveedor, request);
-        return mapper.aRespuesta(proveedor);
+
+        aplicar(p, req);
+
+        return aRespuesta(proveedores.save(p), productos.countByProveedorIdAndActivoTrue(id));
     }
 
     /**
-     * Eliminación lógica (RF-03, RF-04). El proveedor queda inactivo y se conserva todo su historial.
-     * RN-07: no se puede inactivar mientras tenga productos activos.
+     * RN-07, RF-03, RF-04: "eliminar" es inactivar.
+     *
+     * No se borra la fila porque los movimientos historicos apuntan a
+     * los productos de este proveedor. Y no se permite inactivarlo
+     * mientras tenga productos activos, porque esos productos
+     * quedarian huerfanos de un surtidor vigente.
      */
     @Transactional
     public void inactivar(Long id) {
-        Proveedor proveedor = buscar(id);
+
+        Proveedor p = buscarOFallar(id);
+
         long activos = productos.countByProveedorIdAndActivoTrue(id);
         if (activos > 0) {
             throw new BusinessRuleException(
-                    "No se puede inactivar a '" + proveedor.getNombre() + "': tiene " + activos + " productos activos.",
+                    "No se puede inactivar a '" + p.getNombre() + "': tiene "
+                            + activos + " producto(s) activo(s).",
                     "Deshabilite o reasigne esos productos y vuelva a intentarlo.");
         }
-        proveedor.setActivo(false);
+
+        p.setActivo(false);
+        proveedores.save(p);
     }
 
-    /** Busca un proveedor o lanza el 404. Lo usan los demás métodos de la clase. */
-    private Proveedor buscar(Long id) {
+    private Proveedor buscarOFallar(Long id) {
         return proveedores.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("El proveedor " + id + " no existe."));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "El proveedor " + id + " no existe."));
+    }
+
+    private void aplicar(Proveedor p, ProveedorRequest req) {
+        p.setNombre(req.nombre());
+        p.setNit(req.nit());
+        p.setTelefono(req.telefono());
+        p.setEmail(req.email());
+        p.setDireccion(req.direccion());
+        p.setTiempoEntregaDias(req.tiempoEntregaDias());
+    }
+
+    private ProveedorResponse aRespuesta(Proveedor p, long productosActivos) {
+        return new ProveedorResponse(
+                p.getId(), p.getNombre(), p.getNit(), p.getTelefono(),
+                p.getEmail(), p.getDireccion(), p.getTiempoEntregaDias(),
+                p.isActivo(), productosActivos);
     }
 }

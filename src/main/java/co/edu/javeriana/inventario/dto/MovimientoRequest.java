@@ -2,31 +2,28 @@ package co.edu.javeriana.inventario.dto;
 
 import co.edu.javeriana.inventario.model.MotivoMovimiento;
 import co.edu.javeriana.inventario.model.TipoMovimiento;
-import jakarta.validation.constraints.Digits;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.PositiveOrZero;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
 
 /**
- * Datos que el cliente envía para registrar un movimiento de inventario (RF-14 a RF-18).
+ * Registro de una entrada o salida (HU7, HU8, HU9).
  *
- * No incluye fecha ni usuario: la fecha la pone el sistema y el usuario sale del token de sesión.
- * El valor unitario es opcional; si no se envía, el servicio usa el costo del producto
- * (entradas, bajas) o su precio de venta (ventas), según RN-13.
- * La coherencia entre tipo y motivo se valida en el servicio (RN-04).
+ * No lleva usuarioId: el sistema lo toma del token para que nadie
+ * pueda registrar un movimiento a nombre de otro.
+ *
+ * valorUnitario es opcional (RN-13): si no viene, la entrada usa el
+ * costo del producto y la venta su precio de venta.
  */
 public record MovimientoRequest(
 
         @NotNull(message = "El producto es obligatorio")
         Long productoId,
 
-        @NotNull(message = "El tipo de movimiento es obligatorio (ENTRADA o SALIDA)")
+        @NotNull(message = "El tipo de movimiento es obligatorio")
         TipoMovimiento tipo,
 
-        @NotNull(message = "El motivo es obligatorio (COMPRA, VENTA, AVERIA o VENCIMIENTO)")
+        @NotNull(message = "El motivo es obligatorio")
         MotivoMovimiento motivo,
 
         @NotNull(message = "La cantidad es obligatoria")
@@ -34,9 +31,9 @@ public record MovimientoRequest(
         Integer cantidad,
 
         @PositiveOrZero(message = "El valor unitario no puede ser negativo")
-        @Digits(integer = 10, fraction = 2, message = "El valor admite hasta 10 enteros y 2 decimales")
         BigDecimal valorUnitario,
 
-        @Size(max = 250, message = "La observación no puede superar 250 caracteres")
-        String observacion) {
+        @Size(max = 250, message = "La observacion no puede superar 250 caracteres")
+        String observacion
+) {
 }

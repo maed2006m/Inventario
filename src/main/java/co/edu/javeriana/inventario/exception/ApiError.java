@@ -1,22 +1,19 @@
 package co.edu.javeriana.inventario.exception;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-
 import java.time.Instant;
 import java.util.Map;
 
 /**
- * Formato único de las respuestas de error de la API.
+ * Cuerpo unificado de todas las respuestas de error de la API.
  *
- * @param timestamp momento en que ocurrió el error
- * @param status    código HTTP (400, 404, 409, 500)
- * @param error     nombre estándar del código ("Bad Request", "Conflict", ...)
- * @param message   causa del problema, escrita para el usuario (RNF-03)
- * @param accion    qué puede hacer el usuario para corregirlo (RNF-03)
- * @param path      ruta que se llamó, por ejemplo /api/movimientos
- * @param campos    errores por campo en validaciones (solo en los 400); en los demás casos no se envía
+ * Que todos los errores tengan la misma forma permite que el frontend
+ * los maneje con un solo bloque de codigo, en lugar de adivinar si
+ * recibio un texto plano o un JSON.
+ *
+ * - message: que paso, en lenguaje del usuario (no una traza tecnica)
+ * - accion:  que debe hacer para corregirlo (RNF-03)
+ * - campos:  solo en errores de validacion, campo -> motivo
  */
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public record ApiError(
         Instant timestamp,
         int status,
@@ -24,5 +21,6 @@ public record ApiError(
         String message,
         String accion,
         String path,
-        Map<String, String> campos) {
+        Map<String, String> campos
+) {
 }
