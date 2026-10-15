@@ -58,6 +58,7 @@ public class SecurityConfig {
 
                 // --- Rutas publicas ---
                 .requestMatchers("/api/auth/login").permitAll()
+                 .requestMatchers("/error").permitAll()
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
 
                 // --- Solo ADMIN ---

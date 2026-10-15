@@ -7,7 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -44,6 +44,16 @@ public class GlobalExceptionHandler {
 public ResponseEntity<ApiError> solicitudInvalida(SolicitudInvalidaException e, HttpServletRequest r) {
     return build(HttpStatus.BAD_REQUEST, e.getMessage(), e.getAccion(), r, null);
 }
+
+
+    /** 405 - la ruta existe pero no admite ese metodo HTTP (por ejemplo, editar un movimiento). */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiError> metodoNoPermitido(HttpRequestMethodNotSupportedException e,
+                                                      HttpServletRequest r) {
+        return build(HttpStatus.METHOD_NOT_ALLOWED,
+                "El metodo " + e.getMethod() + " no esta permitido en esta ruta.",
+                "Los movimientos son inmutables: solo se pueden registrar y consultar.", r, null);
+    }
 
 
     /** 401 - credenciales invalidas en el login. */
