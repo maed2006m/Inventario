@@ -20,7 +20,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import java.util.List;
 import java.time.OffsetDateTime;
 
 /**
@@ -88,5 +92,18 @@ public class MovimientoController {
 
         return ResponseEntity.ok(
                 consulta.buscar(productoId, proveedorId, tipo, motivo, desde, hasta, pageable));
+    }
+
+    /**
+     * RN-05 / RNF-04: los movimientos son inmutables. Editar o borrar
+     * se rechaza con 405 de forma explicita. Sin este metodo, Spring
+     * respondia 500 porque la ruta no existe y la excepcion caia en
+     * el manejador general.
+     */
+    @RequestMapping(value = "/{id}",
+            method = {RequestMethod.PUT, RequestMethod.PATCH, RequestMethod.DELETE})
+    public void rechazarModificacion(HttpServletRequest request)
+            throws HttpRequestMethodNotSupportedException {
+        throw new HttpRequestMethodNotSupportedException(request.getMethod(), List.of("GET", "POST"));
     }
 }
