@@ -1,11 +1,11 @@
 package co.edu.javeriana.inventario.exception;
 
 /**
- * Se lanza cuando una operación viola una regla de negocio (RN-02 a RN-11).
- * El manejador global la traduce a HTTP 409 Conflict.
+ * Violacion de una regla de negocio (RN-02, RN-04, RN-06 a RN-11).
+ * El GlobalExceptionHandler la traduce a 409 Conflict.
  *
- * Lleva dos textos: la causa del problema (message) y la acción que el usuario
- * puede tomar para corregirlo (accion), como exige el RNF-03.
+ * Ademas del mensaje lleva una "accion correctiva": el RNF-03 exige
+ * que el error diga tanto la causa como que debe hacer el usuario.
  */
 public class BusinessRuleException extends RuntimeException {
 

@@ -1,0 +1,1125 @@
+{
+  "info": {
+    "name": "Inventario Tienda de Barrio - Entrega 2",
+    "description": "Coleccion de pruebas de API. Ejecutar en orden con el Collection Runner: el login guarda el token y las creaciones guardan los ids que usan las peticiones siguientes.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "tokenTendero",
+      "value": ""
+    },
+    {
+      "key": "proveedorId",
+      "value": ""
+    },
+    {
+      "key": "productoId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "00 Autenticacion",
+      "item": [
+        {
+          "name": "Login admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Guarda el token de ADMIN en la variable de coleccion para las demas peticiones.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"Admin123*\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK y devuelve token\", () => {",
+                  "    pm.response.to.have.status(200);",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.token).to.be.a(\"string\").and.not.empty;",
+                  "    pm.expect(json.rol).to.eql(\"ADMIN\");",
+                  "    pm.collectionVariables.set(\"token\", json.token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login tendero",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Token de TENDERO, usado en la carpeta 05 para comprobar los 403.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"tendero\",\n  \"password\": \"Tendero123*\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK con rol TENDERO\", () => {",
+                  "    pm.response.to.have.status(200);",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.rol).to.eql(\"TENDERO\");",
+                  "    pm.collectionVariables.set(\"tokenTendero\", json.token);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login con clave incorrecta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "RNF-09. El mensaje no debe revelar si el usuario existe.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"ClaveMala123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"401 Unauthorized\", () => {",
+                  "    pm.response.to.have.status(401);",
+                  "    pm.expect(pm.response.json().accion).to.not.be.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Datos del usuario autenticado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK con datos del usuario\", () => {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().username).to.eql(\"admin\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 Proveedores",
+      "item": [
+        {
+          "name": "Crear proveedor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/proveedores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "proveedores"
+              ]
+            },
+            "description": "HU1, RF-01.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Distribuidora Prueba\",\n  \"nit\": \"901234567-8\",\n  \"telefono\": \"3001112233\",\n  \"email\": \"ventas@prueba.example\",\n  \"direccion\": \"Calle 1 # 2-3\",\n  \"tiempoEntregaDias\": 2\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.collectionVariables.set(\"proveedorId\", pm.response.json().id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear proveedor con NIT repetido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/proveedores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "proveedores"
+              ]
+            },
+            "description": "RN-09.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Otra empresa\",\n  \"nit\": \"901234567-8\",\n  \"tiempoEntregaDias\": 2\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"409 Conflict por NIT duplicado\", () => {",
+                  "    pm.response.to.have.status(409);",
+                  "    pm.expect(pm.response.json().accion).to.not.be.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear proveedor sin nombre",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/proveedores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "proveedores"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nit\": \"900000000-1\",\n  \"tiempoEntregaDias\": 2\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"400 Bad Request con el campo senalado\", () => {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().campos).to.have.property(\"nombre\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar proveedores",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/proveedores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "proveedores"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK con lista\", () => {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json()).to.be.an(\"array\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar proveedor inexistente",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/proveedores/999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "proveedores",
+                "999999"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"404 Not Found\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 Productos",
+      "item": [
+        {
+          "name": "Crear producto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "productos"
+              ]
+            },
+            "description": "HU4, RF-06. RN-01: la existencia nace calculada, no digitada.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"TEST-001\",\n  \"nombre\": \"Producto de prueba\",\n  \"categoria\": \"Granos\",\n  \"proveedorId\": \"{{proveedorId}}\",\n  \"stockMinimo\": 5,\n  \"costoUnitario\": 1800,\n  \"precioVenta\": 2400\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created con existencia 0 y estado AGOTADO\", () => {",
+                  "    pm.response.to.have.status(201);",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.existencia).to.eql(0);",
+                  "    pm.expect(json.estado).to.eql(\"AGOTADO\");",
+                  "    pm.collectionVariables.set(\"productoId\", json.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear producto con SKU repetido",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "productos"
+              ]
+            },
+            "description": "RN-09.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"TEST-001\",\n  \"nombre\": \"Duplicado\",\n  \"proveedorId\": \"{{proveedorId}}\",\n  \"stockMinimo\": 1,\n  \"costoUnitario\": 100,\n  \"precioVenta\": 200\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"409 Conflict por SKU duplicado\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear producto con proveedor inexistente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "productos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"TEST-999\",\n  \"nombre\": \"Sin proveedor\",\n  \"proveedorId\": 999999,\n  \"stockMinimo\": 1,\n  \"costoUnitario\": 100,\n  \"precioVenta\": 200\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"404 Not Found\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar productos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/productos?soloActivos=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "productos"
+              ],
+              "query": [
+                {
+                  "key": "soloActivos",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Alertas de stock",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/productos/alertas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "productos",
+                "alertas"
+              ]
+            },
+            "description": "HU11, RF-23."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK, ninguno EN_STOCK\", () => {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.response.json().forEach(p => pm.expect(p.estado).to.not.eql(\"EN_STOCK\"));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 Movimientos",
+      "item": [
+        {
+          "name": "Entrada por compra de 10",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/movimientos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "movimientos"
+              ]
+            },
+            "description": "HU7, RF-14. RN-13: toma el costo del producto por defecto.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productoId\": \"{{productoId}}\",\n  \"tipo\": \"ENTRADA\",\n  \"motivo\": \"COMPRA\",\n  \"cantidad\": 10\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created y existencia resultante 10\", () => {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().existenciaResultante).to.eql(10);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Venta de 4",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/movimientos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "movimientos"
+              ]
+            },
+            "description": "HU8, RF-17.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productoId\": \"{{productoId}}\",\n  \"tipo\": \"SALIDA\",\n  \"motivo\": \"VENTA\",\n  \"cantidad\": 4\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created y existencia resultante 6\", () => {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().existenciaResultante).to.eql(6);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Venta que supera la existencia",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/movimientos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "movimientos"
+              ]
+            },
+            "description": "EVIDENCIA CENTRAL: RF-21, RF-22, RNF-03, RN-02.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productoId\": \"{{productoId}}\",\n  \"tipo\": \"SALIDA\",\n  \"motivo\": \"VENTA\",\n  \"cantidad\": 40\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"409 con causa y accion correctiva\", () => {",
+                  "    pm.response.to.have.status(409);",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.message).to.include(\"supera la existencia\");",
+                  "    pm.expect(json.accion).to.not.be.empty;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Entrada con motivo VENTA",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/movimientos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "movimientos"
+              ]
+            },
+            "description": "RN-04.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productoId\": \"{{productoId}}\",\n  \"tipo\": \"ENTRADA\",\n  \"motivo\": \"VENTA\",\n  \"cantidad\": 1\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"409 Conflict por motivo incorrecto\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cantidad negativa",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/movimientos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "movimientos"
+              ]
+            },
+            "description": "RN-03, RF-16.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productoId\": \"{{productoId}}\",\n  \"tipo\": \"ENTRADA\",\n  \"motivo\": \"COMPRA\",\n  \"cantidad\": -5\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"400 con el campo cantidad senalado\", () => {",
+                  "    pm.response.to.have.status(400);",
+                  "    pm.expect(pm.response.json().campos).to.have.property(\"cantidad\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Historial filtrado",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/movimientos?productoId={{productoId}}&page=0&size=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "movimientos"
+              ],
+              "query": [
+                {
+                  "key": "productoId",
+                  "value": "{{productoId}}"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "HU14, RF-27, RF-28."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK y respuesta paginada\", () => {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json()).to.have.property(\"content\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Intento de editar un movimiento",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/movimientos/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "movimientos",
+                "1"
+              ]
+            },
+            "description": "RN-05, RNF-04. No existe el metodo PUT a proposito.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cantidad\": 99\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"405 Method Not Allowed: los movimientos son inmutables\", () => {",
+                  "    pm.response.to.have.status(405);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 Verificacion de existencia",
+      "item": [
+        {
+          "name": "Producto con existencia calculada",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/productos/{{productoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "productos",
+                "{{productoId}}"
+              ]
+            },
+            "description": "RF-20, RN-01, RN-10: 10 de entrada menos 4 de venta, minimo 5."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK, existencia 6 y estado EN_STOCK\", () => {",
+                  "    pm.response.to.have.status(200);",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.existencia).to.eql(6);",
+                  "    pm.expect(json.estado).to.eql(\"EN_STOCK\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 Seguridad",
+      "item": [
+        {
+          "name": "Sin token",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/productos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "productos"
+              ]
+            },
+            "description": "RN-12, RNF-09.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{sinToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"401 Unauthorized\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tendero intenta editar un proveedor",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/proveedores/{{proveedorId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "proveedores",
+                "{{proveedorId}}"
+              ]
+            },
+            "description": "RNF-10, HU2.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenTendero}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Cambio no permitido\",\n  \"nit\": \"901234567-8\",\n  \"tiempoEntregaDias\": 2\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"403 Forbidden: requiere rol ADMIN\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tendero intenta inactivar un proveedor",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/proveedores/{{proveedorId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "proveedores",
+                "{{proveedorId}}"
+              ]
+            },
+            "description": "RNF-10, HU3.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenTendero}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"403 Forbidden: requiere rol ADMIN\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tendero registra un movimiento",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/movimientos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "movimientos"
+              ]
+            },
+            "description": "Contraparte de las anteriores: comprueba que el rol TENDERO no esta bloqueado de mas.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tokenTendero}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productoId\": \"{{productoId}}\",\n  \"tipo\": \"ENTRADA\",\n  \"motivo\": \"COMPRA\",\n  \"cantidad\": 5\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created: el tendero SI puede registrar movimientos\", () => {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

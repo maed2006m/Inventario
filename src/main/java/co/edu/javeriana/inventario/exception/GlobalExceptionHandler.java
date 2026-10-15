@@ -1,95 +1,113 @@
 package co.edu.javeriana.inventario.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
-import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Traduce las excepciones de la aplicación a respuestas HTTP con el formato ApiError.
- * Cada respuesta indica la causa y la acción correctiva (RNF-03).
+ * Traduce las excepciones de toda la aplicacion a respuestas HTTP.
+ *
+ * Centralizarlo aqui evita tener try/catch en cada controlador y
+ * garantiza que el formato del error sea siempre el mismo.
+ *
+ * IMPORTANTE: aqui NO se manejan AccessDeniedException ni
+ * AuthenticationException. Esas las resuelve Spring Security antes
+ * de llegar al controlador (ver SecurityConfig), y si las
+ * capturaramos aqui los 401 y 403 dejarian de funcionar.
  */
-@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    /** 404: el recurso buscado no existe. */
+    /** 404 - el recurso pedido no existe. */
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ApiError> manejarNoEncontrado(ResourceNotFoundException e, HttpServletRequest request) {
-        return construir(HttpStatus.NOT_FOUND, e.getMessage(),
-                "Verifique el identificador e intente de nuevo.", request, null);
+    public ResponseEntity<ApiError> noEncontrado(ResourceNotFoundException e, HttpServletRequest r) {
+        return build(HttpStatus.NOT_FOUND, e.getMessage(),
+                "Verifique el identificador enviado.", r, null);
     }
 
-    /** 409: una regla de negocio no permite la operación (incluye StockInsuficienteException). */
+    /** 409 - la peticion es valida pero choca con una regla de negocio. */
     @ExceptionHandler(BusinessRuleException.class)
-    public ResponseEntity<ApiError> manejarReglaDeNegocio(BusinessRuleException e, HttpServletRequest request) {
-        return construir(HttpStatus.CONFLICT, e.getMessage(), e.getAccion(), request, null);
+    public ResponseEntity<ApiError> reglaDeNegocio(BusinessRuleException e, HttpServletRequest r) {
+        return build(HttpStatus.CONFLICT, e.getMessage(), e.getAccion(), r, null);
     }
 
-    /** 400: los datos enviados no cumplen las validaciones (@Valid). Devuelve los campos con error. */
+/** 400 - la solicitud es invalida (por ejemplo, rango de fechas invertido). */
+@ExceptionHandler(SolicitudInvalidaException.class)
+public ResponseEntity<ApiError> solicitudInvalida(SolicitudInvalidaException e, HttpServletRequest r) {
+    return build(HttpStatus.BAD_REQUEST, e.getMessage(), e.getAccion(), r, null);
+}
+
+
+    /** 401 - credenciales invalidas en el login. */
+    @ExceptionHandler(CredencialesInvalidasException.class)
+    public ResponseEntity<ApiError> credenciales(CredencialesInvalidasException e, HttpServletRequest r) {
+        return build(HttpStatus.UNAUTHORIZED, e.getMessage(),
+                "Verifique su usuario y contrasena.", r, null);
+    }
+
+    /**
+     * 400 - fallo la validacion de @Valid sobre el DTO de entrada.
+     *
+     * Sin este metodo Spring devuelve un JSON largo donde los mensajes
+     * personalizados quedan enterrados. Aqui los extraemos a un mapa
+     * campo -> motivo, que es lo que el frontend puede mostrar junto
+     * a cada input del formulario.
+     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiError> manejarValidacion(MethodArgumentNotValidException e, HttpServletRequest request) {
+    public ResponseEntity<ApiError> validacion(MethodArgumentNotValidException e, HttpServletRequest r) {
         Map<String, String> campos = new LinkedHashMap<>();
         e.getBindingResult().getFieldErrors()
-                .forEach(error -> campos.put(error.getField(), error.getDefaultMessage()));
-        return construir(HttpStatus.BAD_REQUEST, "Hay datos inválidos en la solicitud.",
-                "Corrija los campos indicados y vuelva a enviar.", request, campos);
+                .forEach(f -> campos.put(f.getField(), f.getDefaultMessage()));
+
+        return build(HttpStatus.BAD_REQUEST, "Hay datos invalidos en la solicitud.",
+                "Corrija los campos indicados y reenvie.", r, campos);
     }
 
-    /** 400: el JSON está mal formado o un valor no es válido (por ejemplo, un tipo de movimiento inexistente). */
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ApiError> manejarJsonInvalido(HttpMessageNotReadableException e, HttpServletRequest request) {
-        return construir(HttpStatus.BAD_REQUEST, "El cuerpo de la solicitud no se pudo interpretar.",
-                "Revise que el JSON esté bien formado y que los valores sean válidos (por ejemplo, tipo ENTRADA o SALIDA).",
-                request, null);
-    }
-
-    /** 400: un parámetro de la URL tiene un tipo incorrecto (por ejemplo, un id que no es número). */
-    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<ApiError> manejarParametroInvalido(MethodArgumentTypeMismatchException e, HttpServletRequest request) {
-        return construir(HttpStatus.BAD_REQUEST, "El parámetro '" + e.getName() + "' tiene un valor inválido.",
-                "Envíe un valor del tipo correcto.", request, null);
-    }
-
-    /** 405: se intentó un método HTTP no permitido, por ejemplo editar o borrar un movimiento (RN-05). */
-    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<ApiError> manejarMetodoNoPermitido(HttpRequestMethodNotSupportedException e, HttpServletRequest request) {
-        return construir(HttpStatus.METHOD_NOT_ALLOWED, "El método " + e.getMethod() + " no está permitido en esta ruta.",
-                "Consulte la documentación de la API en /swagger-ui.html.", request, null);
-    }
-
-    /** 409: la base de datos rechazó la operación (valor único repetido, referencia inexistente). */
+    /**
+     * 409 - una restriccion de la base de datos rechazo la operacion.
+     *
+     * Es la red de seguridad: si un UNIQUE o un CHECK se dispara sin
+     * que el servicio lo haya previsto, el usuario recibe un 409 con
+     * sentido en lugar de un 500.
+     */
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ApiError> manejarIntegridad(DataIntegrityViolationException e, HttpServletRequest request) {
-        log.warn("Violación de integridad en {}: {}", request.getRequestURI(), e.getMostSpecificCause().getMessage());
-        return construir(HttpStatus.CONFLICT, "La operación viola una restricción de la base de datos.",
-                "Revise valores únicos (SKU, NIT) y referencias a otros registros.", request, null);
+    public ResponseEntity<ApiError> integridad(DataIntegrityViolationException e, HttpServletRequest r) {
+        return build(HttpStatus.CONFLICT, "La operacion viola una restriccion de la base de datos.",
+                "Revise los valores unicos (SKU, NIT) y las referencias.", r, null);
     }
 
-    /** 500: cualquier error no previsto. No se expone la causa interna al cliente. */
+    /**
+     * 500 - cualquier cosa no prevista.
+     *
+     * Debe quedar de ultimo. No expone la traza ni el nombre de la
+     * clase de la excepcion: eso es informacion util para un atacante
+     * e inutil para el usuario.
+     */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiError> manejarInesperado(Exception e, HttpServletRequest request) {
-        log.error("Error inesperado en {}", request.getRequestURI(), e);
-        return construir(HttpStatus.INTERNAL_SERVER_ERROR, "Ocurrió un error interno del servidor.",
-                "Intente de nuevo; si el problema continúa, contacte al administrador.", request, null);
+    public ResponseEntity<ApiError> inesperado(Exception e, HttpServletRequest r) {
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno del servidor.",
+                "Intente de nuevo; si persiste, contacte al administrador.", r, null);
     }
 
-    /** Arma la respuesta con el formato único ApiError. */
-    private ResponseEntity<ApiError> construir(HttpStatus estado, String mensaje, String accion,
-                                               HttpServletRequest request, Map<String, String> campos) {
-        ApiError cuerpo = new ApiError(Instant.now(), estado.value(), estado.getReasonPhrase(),
-                mensaje, accion, request.getRequestURI(), campos);
-        return ResponseEntity.status(estado).body(cuerpo);
+    private ResponseEntity<ApiError> build(HttpStatus status, String mensaje, String accion,
+                                           HttpServletRequest request, Map<String, String> campos) {
+        ApiError cuerpo = new ApiError(
+                Instant.now(),
+                status.value(),
+                status.getReasonPhrase(),
+                mensaje,
+                accion,
+                request.getRequestURI(),
+                campos
+        );
+        return ResponseEntity.status(status).body(cuerpo);
     }
 }
