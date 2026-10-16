@@ -5,8 +5,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
  * Base de las pruebas de integracion.
@@ -24,16 +22,22 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  * @ServiceConnection inyecta automaticamente la url, el usuario y la
  * contrasena del contenedor; no hay que configurar el datasource.
  *
- * El contenedor es static: se levanta una vez y lo comparten todas
- * las pruebas de la clase, en lugar de arrancar uno por cada metodo.
+ * El contenedor es un SINGLETON: se arranca una sola vez en el bloque
+ * static y se comparte entre TODAS las clases de integracion. Spring
+ * guarda el contexto en cache y lo reutiliza entre clases; si el
+ * contenedor se apagara al terminar la primera clase, las siguientes
+ * encontrarian la base apagada (Connection refused). Testcontainers lo
+ * elimina solo al cerrar la JVM.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@Testcontainers
 @ActiveProfiles("test")
 public abstract class IntegracionBase {
 
-    @Container
     @ServiceConnection
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16");
+    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16");
+
+    static {
+        postgres.start();
+    }
 }
