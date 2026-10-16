@@ -1,0 +1,66 @@
+<div class="pagina">
+  <h1>Registrar movimiento</h1>
+  <form class="panel tactil formulario" [formGroup]="form" #f="ngForm" (ngSubmit)="guardar(f)">
+    <mat-button-toggle-group formControlName="tipo" aria-label="Tipo de movimiento" class="tipo">
+      <mat-button-toggle value="ENTRADA"><mat-icon>south_west</mat-icon> Entrada</mat-button-toggle>
+      <mat-button-toggle value="SALIDA"><mat-icon>north_east</mat-icon> Salida</mat-button-toggle>
+    </mat-button-toggle-group>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Producto</mat-label>
+      <mat-select formControlName="productoId">
+        @for (p of productos(); track p.id) {
+          <mat-option [value]="p.id">{{ p.nombre }} · {{ p.sku }}{{ p.activo ? '' : ' (deshabilitado)' }}</mat-option>
+        }
+      </mat-select>
+      <mat-error>Elija un producto</mat-error>
+    </mat-form-field>
+
+    @if (seleccionado(); as p) {
+      <div class="existencia" aria-live="polite">
+        Existencia actual: <strong>{{ p.existencia }}</strong> · mínimo {{ p.stockMinimo }}
+        <app-badge-estado [estado]="p.estado" />
+      </div>
+    }
+
+    <mat-form-field appearance="outline">
+      <mat-label>Motivo</mat-label>
+      <mat-select formControlName="motivo">
+        @for (m of motivos(); track m) {
+          <mat-option [value]="m">{{ etiqueta[m] }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Cantidad</mat-label>
+      <input matInput type="number" min="1" step="1" formControlName="cantidad" inputmode="numeric" />
+      @if (form.controls.cantidad.invalid) {
+        <mat-error>La cantidad debe ser un entero mayor que 0</mat-error>
+      }
+    </mat-form-field>
+
+    @if (form.hasError('superaExistencia')) {
+      <div class="error-servidor" role="alert">
+        <strong>Solo hay {{ existencia() }} unidades.</strong>
+        Reduzca la cantidad o registre antes una entrada de compra.
+      </div>
+    }
+
+    <mat-form-field appearance="outline">
+      <mat-label>Observación (opcional)</mat-label>
+      <textarea matInput rows="2" formControlName="observacion" maxlength="250"></textarea>
+    </mat-form-field>
+
+    @if (errorServidor(); as e) {
+      <div class="error-servidor" role="alert">
+        <strong>{{ e.message }}</strong>{{ e.accion }}
+      </div>
+    }
+
+    <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid || guardando()">
+      <mat-icon>check</mat-icon> Registrar
+    </button>
+    <p class="ayuda">Los movimientos no se pueden editar ni borrar. Para corregir un error registre un movimiento nuevo con una observación.</p>
+  </form>
+</div>

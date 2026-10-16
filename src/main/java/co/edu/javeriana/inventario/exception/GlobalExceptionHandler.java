@@ -103,6 +103,7 @@ public ResponseEntity<ApiError> solicitudInvalida(SolicitudInvalidaException e, 
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> inesperado(Exception e, HttpServletRequest r) {
+org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class).error("Error no controlado", e);
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "Error interno del servidor.",
                 "Intente de nuevo; si persiste, contacte al administrador.", r, null);
     }

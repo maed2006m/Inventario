@@ -1,0 +1,51 @@
+/* Estilos globales. Paleta propia sobre el tema indigo-pink de Angular Material. */
+:root {
+  --verde: #1f6f5c;
+  --verde-claro: #e6f2ee;
+  --ambar: #a35c00;
+  --ambar-claro: #fff3e0;
+  --rojo: #b3261e;
+  --rojo-claro: #fdecea;
+  --gris: #5f6368;
+  --borde: #e0e0e0;
+  --fondo: #f6f7f9;
+}
+
+html, body { height: 100%; }
+body { margin: 0; font-family: Roboto, 'Helvetica Neue', sans-serif; background: var(--fondo); color: #1f2328; }
+
+.pagina { padding: 16px; max-width: 1280px; margin: 0 auto; box-sizing: border-box; }
+.pagina h1 { font-size: 1.5rem; font-weight: 500; margin: 4px 0 16px; }
+.barra-acciones { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 12px; }
+.barra-acciones .espacio { flex: 1; }
+
+/* RNF-02: las tablas se desplazan horizontalmente en pantallas pequeñas */
+.tabla-contenedor { overflow-x: auto; background: #fff; border-radius: 8px; border: 1px solid var(--borde); }
+.tabla-contenedor table { width: 100%; }
+td.num, th.num { text-align: right; }
+
+/* En teléfono se ocultan las columnas secundarias */
+@media (max-width: 599px) {
+  .ocultar-movil { display: none !important; }
+  .pagina { padding: 12px; }
+}
+
+/* RNF-01: controles táctiles de al menos 44 px */
+.tactil .mat-mdc-form-field { width: 100%; }
+.tactil button { min-height: 44px; }
+
+.tarjetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.tarjeta-kpi { background: #fff; border: 1px solid var(--borde); border-radius: 8px; padding: 14px 16px; }
+.tarjeta-kpi .etiqueta { color: var(--gris); font-size: 0.85rem; }
+.tarjeta-kpi .valor { font-size: 1.6rem; font-weight: 500; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.tarjeta-kpi.alerta .valor { color: var(--ambar); }
+.tarjeta-kpi.peligro .valor { color: var(--rojo); }
+
+.panel { background: #fff; border: 1px solid var(--borde); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+.panel h2 { font-size: 1.1rem; font-weight: 500; margin: 0 0 12px; }
+.rejilla-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+
+.error-servidor { background: var(--rojo-claro); color: var(--rojo); border-radius: 6px; padding: 12px 14px; margin: 8px 0; }
+.error-servidor strong { display: block; }
+.ayuda { color: var(--gris); font-size: 0.85rem; }
+.vacio { color: var(--gris); padding: 24px; text-align: center; }
