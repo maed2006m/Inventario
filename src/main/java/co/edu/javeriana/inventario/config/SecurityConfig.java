@@ -16,7 +16,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
+import jakarta.servlet.DispatcherType;
 import java.util.List;
 
 /**
@@ -58,6 +58,7 @@ public class SecurityConfig {
 
                 // --- Rutas publicas ---
                 .requestMatchers("/api/auth/login").permitAll()
+		.dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
                  .requestMatchers("/error").permitAll()
                 .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
 

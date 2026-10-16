@@ -76,7 +76,7 @@ class MovimientoApiIT extends IntegracionBase {
      * y sku entre pruebas, ya que comparten el mismo contenedor.
      */
     private long crearProductoNuevo() throws Exception {
-        String sufijo = String.valueOf(System.nanoTime()).substring(6, 15);
+String sufijo = String.valueOf(java.util.concurrent.ThreadLocalRandom.current().nextLong(100_000_000L, 1_000_000_000L));
 
         var proveedor = enviar(HttpMethod.POST, "/api/proveedores", tokenTendero(),
                 Map.of("nombre", "Proveedor IT", "nit", sufijo, "tiempoEntregaDias", 2))
