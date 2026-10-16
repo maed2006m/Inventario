@@ -105,4 +105,15 @@ class ConsultasApiIT extends IntegracionBase {
     @DisplayName("Listado de productos")
     void listarProductos() throws Exception {
         mvc.perform(get("/api/productos")
-                        .header(HttpHeaders.AUTHORIZATION,
+                        .header(HttpHeaders.AUTHORIZATION, tokenTendero()))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("Listado de proveedores")
+    void listarProveedores() throws Exception {
+        mvc.perform(get("/api/proveedores")
+                        .header(HttpHeaders.AUTHORIZATION, tokenTendero()))
+                .andExpect(status().isOk());
+    }
+}
