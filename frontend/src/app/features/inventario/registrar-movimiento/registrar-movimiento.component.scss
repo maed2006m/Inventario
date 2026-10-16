@@ -1,0 +1,4 @@
+.formulario { max-width: 560px; display: flex; flex-direction: column; gap: 4px; }
+.tipo { margin-bottom: 16px; width: 100%; }
+.tipo mat-button-toggle { flex: 1; min-height: 44px; }
+.existencia { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: -4px 0 12px; color: var(--gris); }
