@@ -45,6 +45,10 @@ export const routes: Routes = [
         canActivate: [rolGuard('ADMIN')],
         loadChildren: () => import('./features/reportes/reportes.routes').then((m) => m.REPORTES_ROUTES)
       },
+      {
+        path: 'consola',
+        loadComponent: () => import('./features/consola/consola.component').then((m) => m.ConsolaComponent)
+      },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' }
     ]
   },

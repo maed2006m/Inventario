@@ -1,0 +1,191 @@
+<div class="pagina">
+  <h1>Consola de pruebas de la API</h1>
+
+  <!-- Credenciales con las que se firman las peticiones -->
+  <section class="tarjeta credenciales">
+    <div class="usuario-prueba">
+      <strong>Administrador</strong>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Usuario</mat-label>
+        <input matInput [(ngModel)]="usuarios.admin.username" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Contraseña</mat-label>
+        <input matInput type="password" [(ngModel)]="usuarios.admin.password" />
+      </mat-form-field>
+      <span class="chip" [class.chip-ok]="tokenAdmin()">{{ tokenAdmin() ? 'Token listo' : 'Sin token' }}</span>
+    </div>
+    <div class="usuario-prueba">
+      <strong>Tendero</strong>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Usuario</mat-label>
+        <input matInput [(ngModel)]="usuarios.tendero.username" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Contraseña</mat-label>
+        <input matInput type="password" [(ngModel)]="usuarios.tendero.password" />
+      </mat-form-field>
+      <span class="chip" [class.chip-ok]="tokenTendero()">{{ tokenTendero() ? 'Token listo' : 'Sin token' }}</span>
+    </div>
+    <button mat-stroked-button (click)="obtenerTokens()"><mat-icon>key</mat-icon> Obtener tokens</button>
+    @if (errorTokens()) {
+      <p class="error">{{ errorTokens() }}</p>
+    }
+  </section>
+
+  <mat-tab-group animationDuration="0ms">
+    <!-- ============================================================ Explorador -->
+    <mat-tab label="Explorador de endpoints">
+      <div class="explorador">
+        <nav class="lista-endpoints" aria-label="Endpoints">
+          @for (g of grupos; track g) {
+            <h3>{{ g }}</h3>
+            @for (e of endpointsDe(g); track e.metodo + e.ruta) {
+              <button
+                type="button"
+                class="item-endpoint"
+                [class.activo]="e === seleccionado()"
+                (click)="seleccionar(e)"
+              >
+                <span class="metodo" [attr.data-metodo]="e.metodo">{{ e.metodo }}</span>
+                <span class="ruta">{{ e.ruta }}</span>
+              </button>
+            }
+          }
+        </nav>
+
+        @if (seleccionado(); as e) {
+        <section class="detalle">
+          <div class="encabezado-endpoint">
+            <span class="metodo grande" [attr.data-metodo]="e.metodo">{{ e.metodo }}</span>
+            <code>/api{{ rutaFinal() }}</code>
+          </div>
+          <p class="descripcion">
+            {{ e.descripcion }}
+            <span class="chip" [attr.data-acceso]="e.acceso">{{
+              e.acceso === 'PUBLICO' ? 'Público' : e.acceso === 'ADMIN' ? 'Solo ADMIN' : 'Cualquier rol'
+            }}</span>
+            @if (e.referencia) {
+              <span class="chip">{{ e.referencia }}</span>
+            }
+            <span class="chip">Esperado: {{ e.esperado }}</span>
+          </p>
+
+          <div class="campo-bloque">
+            <label>Enviar como</label>
+            <mat-button-toggle-group [(ngModel)]="credencial" aria-label="Credencial">
+              <mat-button-toggle value="sesion">Mi sesión</mat-button-toggle>
+              <mat-button-toggle value="admin">Administrador</mat-button-toggle>
+              <mat-button-toggle value="tendero">Tendero</mat-button-toggle>
+              <mat-button-toggle value="ninguna">Sin token</mat-button-toggle>
+              <mat-button-toggle value="invalida">Token falso</mat-button-toggle>
+            </mat-button-toggle-group>
+          </div>
+
+          @if (e.parametrosRuta) {
+            <div class="parametros">
+              @for (p of parametrosRuta | keyvalue; track p.key) {
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>{{ p.key }}</mat-label>
+                  <input matInput [(ngModel)]="parametrosRuta[p.key]" />
+                </mat-form-field>
+              }
+            </div>
+          }
+
+          @if (e.query) {
+            <div class="campo-bloque">
+              <label for="query">Parámetros de consulta (JSON; los vacíos se omiten)</label>
+              <textarea id="query" class="json" rows="5" [(ngModel)]="queryTexto"></textarea>
+            </div>
+          }
+
+          @if (admiteCuerpo(e.metodo)) {
+            <div class="campo-bloque">
+              <label for="cuerpo">Cuerpo (JSON)</label>
+              <textarea id="cuerpo" class="json" rows="9" [(ngModel)]="cuerpoTexto"></textarea>
+            </div>
+          }
+
+          @if (errorJson()) {
+            <p class="error">{{ errorJson() }}</p>
+          }
+
+          <button mat-flat-button color="primary" (click)="enviar()" [disabled]="enviando()">
+            <mat-icon>send</mat-icon> Enviar
+          </button>
+
+          @if (respuesta(); as r) {
+            <div class="respuesta">
+              <div class="linea-estado">
+                <span class="estado" [class.estado-ok]="r.ok" [class.estado-error]="!r.ok">
+                  {{ r.status === 0 ? 'Sin conexión' : r.status }}
+                </span>
+                <span class="secundario">{{ r.ms }} ms</span>
+                @if (r.status === e.esperado) {
+                  <span class="chip chip-ok">Coincide con lo esperado</span>
+                } @else {
+                  <span class="chip chip-aviso">Se esperaba {{ e.esperado }}</span>
+                }
+              </div>
+              @if (r.contentDisposition) {
+                <p class="secundario">Content-Disposition: {{ r.contentDisposition }}</p>
+              }
+              <pre class="cuerpo-respuesta">{{ cuerpoLegible(r) }}</pre>
+            </div>
+          }
+        </section>
+        }
+      </div>
+    </mat-tab>
+
+    <!-- ============================================================ Pruebas automáticas -->
+    <mat-tab label="Pruebas automáticas">
+      <div class="pruebas">
+        <p class="aviso">
+          <mat-icon>info</mat-icon>
+          Se ejecutan contra el backend en ejecución. El grupo «Flujo de inventario» crea un proveedor y un producto
+          <code>PRUEBA-…</code> y registra movimientos que no se pueden borrar (RNF-04). Úselo en la base de desarrollo,
+          no con datos reales.
+        </p>
+
+        <div class="barra-acciones">
+          <button mat-flat-button color="primary" (click)="ejecutarPruebas()" [disabled]="ejecutandoPruebas()">
+            <mat-icon>play_arrow</mat-icon> Ejecutar todas
+          </button>
+          @if (ejecutandoPruebas()) {
+            <mat-spinner [diameter]="24" />
+          }
+          <span class="espacio"></span>
+          <span class="resumen">
+            <span class="ok">{{ resumen().ok }} pasaron</span> ·
+            <span class="falla">{{ resumen().fallas }} fallaron</span> · {{ resumen().total }} en total
+          </span>
+        </div>
+
+        @for (g of gruposPruebas; track g) {
+          <h3>{{ g }}</h3>
+          <ul class="lista-pruebas">
+            @for (r of resultadosDe(g); track r.prueba.nombre) {
+              <li [attr.data-estado]="r.estado">
+                <mat-icon class="icono-estado">{{ icono(r.estado) }}</mat-icon>
+                <div class="texto-prueba">
+                  <span>{{ r.prueba.nombre }}</span>
+                  @if (r.prueba.referencia) {
+                    <span class="chip">{{ r.prueba.referencia }}</span>
+                  }
+                  @if (r.mensaje) {
+                    <div class="error">{{ r.mensaje }}</div>
+                  }
+                </div>
+                @if (r.ms !== undefined) {
+                  <span class="secundario">{{ r.ms }} ms</span>
+                }
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</div>
