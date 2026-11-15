@@ -22,7 +22,7 @@ import {
   Proveedor,
   TipoMovimiento
 } from '../../../core/models';
-import { ETIQUETA_MOTIVO, ETIQUETA_TIPO } from '../../../shared/etiquetas';
+import { CLASE_MOTIVO, CLASE_TIPO, ETIQUETA_MOTIVO, ETIQUETA_TIPO } from '../../../shared/etiquetas';
 import { FormatoMonedaPipe } from '../../../shared/formato-moneda.pipe';
 
 /**
@@ -110,7 +110,7 @@ import { FormatoMonedaPipe } from '../../../shared/formato-moneda.pipe';
         <table mat-table [dataSource]="pagina()?.content ?? []">
           <ng-container matColumnDef="fecha">
             <th mat-header-cell *matHeaderCellDef>Fecha</th>
-            <td mat-cell *matCellDef="let m">{{ m.fecha | date: 'dd/MM/yyyy HH:mm' }}</td>
+            <td mat-cell *matCellDef="let m" class="mono">{{ m.fecha | date: 'dd/MM/yyyy HH:mm' }}</td>
           </ng-container>
           <ng-container matColumnDef="producto">
             <th mat-header-cell *matHeaderCellDef>Producto</th>
@@ -118,11 +118,11 @@ import { FormatoMonedaPipe } from '../../../shared/formato-moneda.pipe';
           </ng-container>
           <ng-container matColumnDef="tipo">
             <th mat-header-cell *matHeaderCellDef>Tipo</th>
-            <td mat-cell *matCellDef="let m" [class.salida]="m.tipo === 'SALIDA'">{{ etiquetaTipo[m.tipo] }}</td>
+            <td mat-cell *matCellDef="let m"><span [class]="'pill ' + claseTipo[m.tipo]">{{ etiquetaTipo[m.tipo] }}</span></td>
           </ng-container>
           <ng-container matColumnDef="motivo">
             <th mat-header-cell *matHeaderCellDef class="ocultar-movil">Motivo</th>
-            <td mat-cell *matCellDef="let m" class="ocultar-movil">{{ etiquetaMotivo[m.motivo] }}</td>
+            <td mat-cell *matCellDef="let m" class="ocultar-movil"><span [class]="'pill ' + claseMotivo[m.motivo]">{{ etiquetaMotivo[m.motivo] }}</span></td>
           </ng-container>
           <ng-container matColumnDef="cantidad">
             <th mat-header-cell *matHeaderCellDef class="num">Cantidad</th>
@@ -158,7 +158,6 @@ import { FormatoMonedaPipe } from '../../../shared/formato-moneda.pipe';
   `,
   styles: [
     `
-      .salida { color: var(--rojo); }
       .progreso { display: grid; gap: 4px; margin-bottom: 12px; }
     `
   ]
@@ -184,6 +183,8 @@ export class HistorialComponent {
   motivos: MotivoMovimiento[] = ['COMPRA', 'VENTA', 'AVERIA', 'VENCIMIENTO'];
   etiquetaMotivo: Record<string, string> = ETIQUETA_MOTIVO;
   etiquetaTipo: Record<string, string> = ETIQUETA_TIPO;
+  claseMotivo: Record<string, string> = CLASE_MOTIVO;
+  claseTipo: Record<string, string> = CLASE_TIPO;
 
   constructor() {
     this.api.productos({ soloActivos: false }).subscribe((p) => this.productos.set(p));

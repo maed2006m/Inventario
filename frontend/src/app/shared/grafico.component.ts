@@ -4,7 +4,12 @@ import { Chart, ChartConfiguration, registerables } from 'chart.js';
 Chart.register(...registerables);
 
 /** Paleta categórica compartida por los gráficos. */
-export const PALETA = ['#1f6f5c', '#3b82c4', '#d08a2e', '#8e5bb5', '#c4504f', '#5c8a3a', '#6b7280'];
+export const PALETA = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#22d3ee', '#94a3b8'];
+
+// Textos y rejilla legibles sobre el tema oscuro.
+Chart.defaults.color = '#94a3b8';
+Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.08)';
+Chart.defaults.font.family = "'Inter', Roboto, sans-serif";
 
 /**
  * Envoltorio mínimo de Chart.js como componente standalone. Recibe la configuración

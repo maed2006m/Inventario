@@ -1,0 +1,108 @@
+<!-- Selector de periodo: atajos rápidos y fechas a mano -->
+<div class="barra-acciones periodo">
+  <div class="rapidos" role="group" aria-label="Periodo rápido">
+    @for (p of periodos; track p.valor) {
+      <button type="button" class="chip" [class.activo]="activo() === p.valor" [attr.aria-pressed]="activo() === p.valor" (click)="elegir(p.valor)">
+        {{ p.texto }}
+      </button>
+    }
+  </div>
+  <span class="espacio"></span>
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Desde</mat-label>
+    <input matInput type="date" [(ngModel)]="desde" />
+  </mat-form-field>
+  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+    <mat-label>Hasta</mat-label>
+    <input matInput type="date" [(ngModel)]="hasta" />
+  </mat-form-field>
+  <button mat-flat-button color="primary" (click)="consultar()">Consultar</button>
+  <button mat-stroked-button (click)="descargarCsv()" [disabled]="filas().length === 0">
+    <mat-icon>download</mat-icon> Descargar CSV
+  </button>
+</div>
+
+@if (error(); as e) {
+  <div class="error-servidor" role="alert"><strong>{{ e.message }}</strong>{{ e.accion }}</div>
+}
+
+@if (cargando()) {
+  <!-- Esqueletos mientras llega el reporte -->
+  <div class="tarjetas" aria-label="Cargando reporte">
+    @for (i of [1, 2, 3, 4]; track i) {
+      <div class="tarjeta-kpi relleno"><i class="esqueleto" style="width: 60%"></i><i class="esqueleto" style="height: 24px; width: 40%"></i></div>
+    }
+  </div>
+  <div class="rejilla-2">
+    @for (i of [1, 2]; track i) {
+      <div class="panel relleno"><i class="esqueleto" style="width: 45%"></i><i class="esqueleto" style="height: 300px"></i></div>
+    }
+  </div>
+} @else if (!error()) {
+  <!-- Resumen del periodo -->
+  <div class="tarjetas">
+    <div class="tarjeta-kpi"><div class="etiqueta">Unidades vendidas</div><div class="valor">{{ unidades() }}</div></div>
+    <div class="tarjeta-kpi"><div class="etiqueta">Ingresos del periodo</div><div class="valor">{{ ingresos() | moneda }}</div></div>
+    <div class="tarjeta-kpi">
+      <div class="etiqueta">Más vendido</div>
+      <div class="valor texto">{{ masVendido() }}</div>
+    </div>
+    <div class="tarjeta-kpi" [class.alerta]="quietos().length > 0">
+      <div class="etiqueta">Sin ventas</div>
+      <div class="valor">{{ quietos().length }}<small> de {{ filas().length }}</small></div>
+    </div>
+  </div>
+
+  @if (vendidos().length === 0) {
+    <!-- Estado vacío: no hubo ventas en el periodo -->
+    <div class="panel vacio-grande">
+      <mat-icon>query_stats</mat-icon>
+      <strong>No hubo ventas en este periodo</strong>
+      <span class="ayuda">Pruebe con un rango más amplio para ver el ranking.</span>
+      <button mat-stroked-button (click)="elegir(90)">Ver últimos 90 días</button>
+    </div>
+  } @else {
+    <div class="rejilla-2">
+      <section class="panel">
+        <h2 class="bento-titulo"><mat-icon>bar_chart</mat-icon> Unidades vendidas (top 10)</h2>
+        @if (grafico(); as g) {
+          <app-grafico [config]="g" [alto]="360" titulo="Ranking de rotación" />
+        }
+      </section>
+
+      <section class="panel">
+        <h2 class="bento-titulo"><mat-icon>leaderboard</mat-icon> Ranking completo</h2>
+        <ol class="ranking">
+          @for (r of vendidos(); track r.productoId) {
+            <li>
+              <span class="puesto" [class.oro]="r.posicion === 1" [class.plata]="r.posicion === 2" [class.bronce]="r.posicion === 3">{{ r.posicion }}</span>
+              <div class="detalle">
+                <div class="fila">
+                  <strong>{{ r.productoNombre }}</strong>
+                  <span class="mono">{{ r.unidadesVendidas }} u</span>
+                </div>
+                <div class="barra"><i [style.width.%]="ancho(r)"></i></div>
+                <div class="fila meta">
+                  <span>{{ r.proveedorNombre }}</span>
+                  <span class="mono">{{ r.ingresos | moneda }} · rot. {{ r.indiceRotacion ?? '—' }}</span>
+                </div>
+              </div>
+            </li>
+          }
+        </ol>
+
+        @if (quietos().length > 0) {
+          <details class="quietos">
+            <summary>Sin ventas en el periodo ({{ quietos().length }})</summary>
+            <ul>
+              @for (r of quietos(); track r.productoId) {
+                <li><span>{{ r.productoNombre }}</span><span class="ayuda">{{ r.proveedorNombre }}</span></li>
+              }
+            </ul>
+          </details>
+        }
+        <p class="ayuda nota">Rotación = unidades vendidas / existencia promedio del periodo.</p>
+      </section>
+    </div>
+  }
+}

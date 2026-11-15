@@ -1,0 +1,38 @@
+/* Reporte de participación. Tarjetas, píldoras y esqueletos vienen de styles.scss. */
+.arriba { margin-top: 16px; }
+.relleno { display: grid; gap: 12px; }
+.valor.texto { font-family: var(--fuente); font-size: 1.05rem; line-height: 1.35; }
+.vacio-grande { display: grid; justify-items: center; gap: 8px; padding: 48px 20px; text-align: center; }
+.vacio-grande .mat-icon { width: 48px; height: 48px; font-size: 48px; color: var(--azul); }
+
+/* Leyenda propia de la dona: color, nombre, valor y barra de participación */
+.leyenda { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 12px; }
+.fila { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 5px; font-size: 0.85rem; }
+.nombre { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.nombre i { flex: 0 0 10px; height: 10px; border-radius: 3px; }
+.fila .mono { color: var(--gris); white-space: nowrap; }
+.fila .mono strong { color: var(--texto); font-weight: 500; }
+.barra { height: 5px; border-radius: 5px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.barra i { display: block; height: 100%; min-width: 3px; border-radius: 5px; }
+
+/* Medidor HHI: tres zonas (0–1.500, 1.500–2.500, 2.500 en adelante) sobre una escala hasta 5.000 */
+.cifra-hhi { display: flex; align-items: baseline; gap: 8px; margin: 4px 0 16px; }
+.cifra-hhi strong { font: 600 2.4rem var(--mono); }
+.cifra-hhi span { color: var(--gris); }
+.medidor { position: relative; display: flex; gap: 3px; height: 12px; }
+.zona { border-radius: 6px; }
+.zona.baja { flex: 30; background: #10b981; }
+.zona.moderada { flex: 20; background: #f59e0b; }
+.zona.alta { flex: 50; background: #ef4444; }
+.aguja { position: absolute; top: -6px; width: 4px; height: 24px; margin-left: -2px; border-radius: 4px; background: #fff; box-shadow: 0 0 12px 2px rgba(255, 255, 255, 0.8); }
+.escala { position: relative; height: 18px; margin-top: 8px; color: var(--gris); font-size: 0.7rem; }
+.escala span { position: absolute; transform: translateX(-50%); }
+.escala span:first-child { transform: none; }
+.escala span:last-child { transform: translateX(-100%); }
+.zonas { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 6px; color: var(--gris); font-size: 0.78rem; }
+.zonas span { display: flex; align-items: center; gap: 6px; }
+.zonas i { width: 10px; height: 10px; border-radius: 3px; }
+.zonas .baja { background: #10b981; }
+.zonas .moderada { background: #f59e0b; }
+.zonas .alta { background: #ef4444; }
+.lectura { margin: 16px 0 8px; }

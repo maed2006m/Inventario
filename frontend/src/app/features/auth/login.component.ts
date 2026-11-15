@@ -1,69 +1,36 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { errorDeApi } from '../../core/errores';
 
-/** Inicio de sesión (Ilustración 2, RNF-09). */
+/** Tiempo que la portada ocupa toda la pantalla antes de dividirse (ms). */
+const ESPERA_PORTADA_MS = 500;
+
+/**
+ * Inicio de sesión (Ilustración 2, RNF-09).
+ *
+ * La vista abre con una portada oscura a pantalla completa y, tras una breve
+ * espera, se divide: la marca queda a la izquierda y el formulario entra por la
+ * derecha. La animación es solo CSS; aquí únicamente se cambia la señal `dividido`.
+ * La lógica de autenticación no cambia: sigue delegando en AuthService.
+ */
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule, MatProgressBarModule],
-  template: `
-    <div class="fondo">
-      <form class="tarjeta tactil" [formGroup]="form" (ngSubmit)="entrar()">
-        <div class="marca"><mat-icon>storefront</mat-icon> Inventario Tienda de Barrio</div>
-        <h1>Iniciar sesión</h1>
-        <mat-form-field appearance="outline">
-          <mat-label>Usuario</mat-label>
-          <input matInput formControlName="username" autocomplete="username" />
-          @if (form.controls.username.hasError('required')) {
-            <mat-error>El usuario es obligatorio</mat-error>
-          }
-        </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>Contraseña</mat-label>
-          <input matInput [type]="ver() ? 'text' : 'password'" formControlName="password" autocomplete="current-password" />
-          <button mat-icon-button matSuffix type="button" (click)="ver.set(!ver())" [attr.aria-label]="ver() ? 'Ocultar' : 'Mostrar'">
-            <mat-icon>{{ ver() ? 'visibility_off' : 'visibility' }}</mat-icon>
-          </button>
-          @if (form.controls.password.hasError('required')) {
-            <mat-error>La contraseña es obligatoria</mat-error>
-          }
-        </mat-form-field>
-        @if (error()) {
-          <div class="error-servidor" role="alert">
-            <strong>{{ error()!.message }}</strong>{{ error()!.accion }}
-          </div>
-        }
-        @if (cargando()) {
-          <mat-progress-bar mode="indeterminate" />
-        }
-        <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid || cargando()">Entrar</button>
-        <p class="ayuda">Usuarios de demostración: admin / Admin123* · tendero / Tendero123*</p>
-      </form>
-    </div>
-  `,
-  styles: [
-    `
-      .fondo { min-height: 100vh; display: grid; place-items: center; padding: 16px; box-sizing: border-box; }
-      .tarjeta { width: 100%; max-width: 380px; background: #fff; border: 1px solid var(--borde); border-radius: 12px;
-        padding: 28px 24px; display: flex; flex-direction: column; gap: 6px; }
-      .marca { display: flex; align-items: center; gap: 8px; color: var(--verde); font-weight: 500; }
-      h1 { font-size: 1.4rem; font-weight: 500; margin: 8px 0 16px; }
-    `
-  ]
+  imports: [ReactiveFormsModule],
+  templateUrl: './login.component.html',
+  styleUrl: './login.component.css'
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit, OnDestroy {
   private fb = inject(FormBuilder);
   private auth = inject(AuthService);
   private router = inject(Router);
+  private temporizador?: ReturnType<typeof setTimeout>;
 
+  /** false = portada a pantalla completa; true = pantalla dividida con el formulario. */
+  dividido = signal(false);
+  /** Muestra u oculta el texto de la contraseña. */
   ver = signal(false);
   cargando = signal(false);
   error = signal<{ message: string; accion: string } | null>(null);
@@ -73,8 +40,24 @@ export class LoginComponent {
     password: ['', Validators.required]
   });
 
+  ngOnInit(): void {
+    this.temporizador = setTimeout(() => this.dividido.set(true), ESPERA_PORTADA_MS);
+  }
+
+  ngOnDestroy(): void {
+    clearTimeout(this.temporizador);
+  }
+
+  /** Indica si un campo debe mostrarse en error: inválido y ya tocado por el usuario. */
+  invalido(campo: 'username' | 'password'): boolean {
+    const control = this.form.controls[campo];
+    return control.invalid && control.touched;
+  }
+
   entrar(): void {
     if (this.form.invalid) {
+      // Marca los campos para que aparezcan los mensajes de validación.
+      this.form.markAllAsTouched();
       return;
     }
     this.cargando.set(true);

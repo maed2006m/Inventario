@@ -1,0 +1,191 @@
+<div class="pagina">
+  <header class="cabecera">
+    <div>
+      <h1>Hola, {{ auth.sesion()?.nombre }}</h1>
+      <p class="ayuda">Así está su inventario en este momento.</p>
+    </div>
+    <a class="boton primario" routerLink="/movimientos/nuevo"><mat-icon>add</mat-icon> Registrar movimiento</a>
+  </header>
+
+  @if (error()) {
+    <div class="error-servidor" role="alert">{{ error() }}</div>
+  }
+
+  <div class="bento">
+    <!-- Indicadores: seis fichas pequeñas -->
+    @if (datos(); as d) {
+      <div class="bento-card kpi"><span>Productos activos</span><strong>{{ d.productosActivos }}</strong></div>
+      <div class="bento-card kpi ambar"><span>Bajo stock</span><strong>{{ d.productosBajoStock }}</strong></div>
+      <div class="bento-card kpi rojo"><span>Agotados</span><strong>{{ d.productosAgotados }}</strong></div>
+      <div class="bento-card kpi"><span>Movimientos hoy</span><strong>{{ d.movimientosHoy }}</strong></div>
+      <div class="bento-card kpi"><span>Valor del inventario</span><strong>{{ d.valorInventario | moneda }}</strong></div>
+      <div class="bento-card kpi"><span>Ventas del mes</span><strong>{{ d.ventasDelMes | moneda }}</strong></div>
+    } @else if (!error()) {
+      <!-- Esqueletos mientras llegan los indicadores -->
+      @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+        <div class="bento-card kpi" aria-hidden="true">
+          <i class="esqueleto" style="width: 70%"></i><i class="esqueleto alto" style="width: 45%"></i>
+        </div>
+      }
+    }
+
+    <!-- 1. Flujo de inventario: proveedores → productos → entradas / salidas -->
+    <section class="bento-card flujo" aria-labelledby="t-flujo">
+      <h2 class="bento-titulo" id="t-flujo">
+        <mat-icon>account_tree</mat-icon> Flujo de inventario
+        <span class="espacio"></span><span class="pill azul">Últimos {{ dias }} días</span>
+      </h2>
+      <div class="diagrama">
+        <a class="nodo" routerLink="/proveedores">
+          <mat-icon>local_shipping</mat-icon>
+          <strong>{{ proveedoresActivos() ?? '—' }}</strong><span>Proveedores</span>
+        </a>
+        <span class="linea" aria-hidden="true"></span>
+        <a class="nodo central" routerLink="/productos">
+          <mat-icon>inventory_2</mat-icon>
+          <strong>{{ datos()?.productosActivos ?? '—' }}</strong><span>Productos</span>
+        </a>
+        <div class="ramas">
+          <div class="rama">
+            <span class="linea verde" aria-hidden="true"></span>
+            <a class="nodo entrada" routerLink="/movimientos">
+              <mat-icon>south_west</mat-icon>
+              <strong>{{ entradas() ?? '—' }}</strong><span>Entradas</span>
+            </a>
+          </div>
+          <div class="rama">
+            <span class="linea morado" aria-hidden="true"></span>
+            <a class="nodo salida" routerLink="/movimientos">
+              <mat-icon>north_east</mat-icon>
+              <strong>{{ salidas() ?? '—' }}</strong><span>Salidas</span>
+            </a>
+          </div>
+        </div>
+      </div>
+      <p class="ayuda nota">La existencia nunca se digita: se calcula con las entradas y salidas registradas.</p>
+    </section>
+
+    <!-- 2. Centro de alertas de stock mínimo -->
+    <section class="bento-card alertas" aria-labelledby="t-alertas">
+      <h2 class="bento-titulo" id="t-alertas">
+        <mat-icon>notifications_active</mat-icon> Alertas de stock mínimo
+        <span class="espacio"></span>
+        @if (alertas().length > 0) {
+          <span class="pill ambar">{{ alertas().length }} por atender</span>
+        }
+      </h2>
+      @if (!alertasListas()) {
+        <div class="cargando" aria-label="Cargando alertas">
+          @for (i of relleno; track i) { <i class="esqueleto fila-alta"></i> }
+        </div>
+      } @else if (criticos().length === 0) {
+        <p class="vacio">Todo el inventario está por encima del mínimo.</p>
+      } @else {
+        <ul class="lista">
+          @for (p of criticos(); track p.id) {
+            <li>
+              <span class="pill" [class.rojo]="p.estado === 'AGOTADO'" [class.ambar]="p.estado !== 'AGOTADO'">
+                {{ p.estado === 'AGOTADO' ? '✕ Agotado' : '▲ Bajo stock' }}
+              </span>
+              <div class="detalle">
+                <strong>{{ p.nombre }}</strong>
+                <span class="mono">{{ p.sku }}</span>
+                <div class="barra" [class.rojo]="p.estado === 'AGOTADO'"><i [style.width.%]="nivel(p)"></i></div>
+              </div>
+              <span class="mono cifra" [attr.aria-label]="'Existencia ' + p.existencia + ' de un mínimo de ' + p.stockMinimo">
+                {{ p.existencia }}<small>/{{ p.stockMinimo }}</small>
+              </span>
+              <a class="boton" routerLink="/movimientos/nuevo" [queryParams]="{ productoId: p.id }">Reabastecer</a>
+            </li>
+          }
+        </ul>
+        <a class="enlace" routerLink="/alertas">Ver todas las alertas →</a>
+      }
+    </section>
+
+    <!-- 3. Rotación (reporte del Administrador) -->
+    <section class="bento-card tercio" aria-labelledby="t-rotacion">
+      <h2 class="bento-titulo" id="t-rotacion"><mat-icon>trending_up</mat-icon> Mayor rotación</h2>
+      @if (!auth.esAdmin()) {
+        <p class="vacio"><mat-icon>lock</mat-icon><br />Reporte disponible para el Administrador.</p>
+      } @else if (!rotacionLista()) {
+        <div class="cargando" aria-label="Cargando rotación">
+          @for (i of relleno; track i) { <i class="esqueleto fila-alta"></i> }
+        </div>
+      } @else if (topRotacion().length === 0) {
+        <p class="vacio">Sin ventas en el periodo.</p>
+      } @else {
+        <ol class="rotacion">
+          @for (r of topRotacion(); track r.productoId) {
+            <li>
+              <div class="fila"><span>{{ r.productoNombre }}</span><span class="mono">{{ r.unidadesVendidas }} u</span></div>
+              <div class="barra azul"><i [style.width.%]="ancho(r)"></i></div>
+            </li>
+          }
+        </ol>
+        <a class="enlace" routerLink="/reportes">Ver reporte completo →</a>
+      }
+    </section>
+
+    <!-- 4. Participación por proveedor (reporte del Administrador) -->
+    <section class="bento-card tercio" aria-labelledby="t-participacion">
+      <h2 class="bento-titulo" id="t-participacion"><mat-icon>donut_large</mat-icon> Participación por proveedor</h2>
+      @if (!auth.esAdmin()) {
+        <p class="vacio"><mat-icon>lock</mat-icon><br />Reporte disponible para el Administrador.</p>
+      } @else if (!participacionLista()) {
+        <div class="cargando" aria-label="Cargando participación">
+          <i class="esqueleto circulo"></i>
+          @for (i of relleno; track i) { <i class="esqueleto"></i> }
+        </div>
+      } @else if (graficoProveedores()) {
+        <div class="dona">
+          <app-grafico [config]="graficoProveedores()!" [alto]="150" titulo="Valor del inventario por proveedor" />
+          <ul class="leyenda">
+            @for (p of participacion(); track p.proveedorId; let i = $index) {
+              <li>
+                <i [style.background]="paleta[i % paleta.length]"></i>
+                <span>{{ p.proveedorNombre }}</span><span class="mono">{{ p.participacionPct }}%</span>
+              </li>
+            }
+          </ul>
+        </div>
+      } @else {
+        <p class="vacio">Sin inventario valorizado.</p>
+      }
+    </section>
+
+    <!-- 5. Últimos movimientos y accesos rápidos -->
+    <section class="bento-card tercio" aria-labelledby="t-movimientos">
+      <h2 class="bento-titulo" id="t-movimientos"><mat-icon>terminal</mat-icon> Últimos movimientos</h2>
+      @if (!ultimosListos()) {
+        <div class="cargando" aria-label="Cargando movimientos">
+          @for (i of relleno; track i) { <i class="esqueleto"></i> }
+          @for (i of relleno; track i) { <i class="esqueleto"></i> }
+        </div>
+      } @else if (ultimos().length === 0) {
+        <p class="vacio">Aún no hay movimientos.</p>
+      } @else {
+        <ul class="consola">
+          @for (m of ultimos(); track m.id) {
+            <li>
+              <span class="mono hora">{{ m.fecha | date: 'dd/MM HH:mm' }}</span>
+              <span class="pill" [class]="'pill ' + claseMotivo[m.motivo]">{{ etiquetaMotivo[m.motivo] }}</span>
+              <span class="producto">{{ m.productoNombre }}</span>
+              <span class="mono" [class.mas]="m.tipo === 'ENTRADA'" [class.menos]="m.tipo === 'SALIDA'">
+                {{ m.tipo === 'ENTRADA' ? '+' : '−' }}{{ m.cantidad }}
+              </span>
+            </li>
+          }
+        </ul>
+      }
+      <div class="acciones">
+        <a class="boton" routerLink="/movimientos"><mat-icon>history</mat-icon> Historial</a>
+        @if (auth.esAdmin()) {
+          <button type="button" class="boton" (click)="exportarCsv()" [disabled]="exportando()">
+            <mat-icon>download</mat-icon> {{ exportando() ? 'Generando…' : 'Exportar CSV (' + dias + ' días)' }}
+          </button>
+        }
+      </div>
+    </section>
+  </div>
+</div>

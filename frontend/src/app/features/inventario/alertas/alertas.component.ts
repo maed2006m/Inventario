@@ -28,8 +28,8 @@ import { BadgeEstadoComponent } from '../../../shared/badge-estado.component';
                 </div>
                 <div class="ayuda">{{ p.proveedorNombre }} · SKU {{ p.sku }}</div>
                 <div class="cifras">
-                  <span>Existencia <strong>{{ p.existencia }}</strong></span>
-                  <span>Mínimo <strong>{{ p.stockMinimo }}</strong></span>
+                  <span>Existencia <strong class="mono">{{ p.existencia }}</strong></span>
+                  <span>Mínimo <strong class="mono">{{ p.stockMinimo }}</strong></span>
                 </div>
                 <a mat-stroked-button [routerLink]="['/movimientos/nuevo']" [queryParams]="{ productoId: p.id }">
                   <mat-icon>add_shopping_cart</mat-icon> Registrar compra
@@ -39,14 +39,19 @@ import { BadgeEstadoComponent } from '../../../shared/badge-estado.component';
           </div>
         }
       } @else {
-        <p class="vacio">Cargando…</p>
+        <div class="lista" aria-label="Cargando alertas">
+          @for (i of [1, 2, 3]; track i) {
+            <div class="panel tarjeta"><i class="esqueleto" style="width: 60%"></i><i class="esqueleto"></i><i class="esqueleto" style="height: 36px"></i></div>
+          }
+        </div>
       }
     </div>
   `,
   styles: [
     `
       .lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
-      .tarjeta { margin: 0; display: grid; gap: 8px; border-left: 4px solid var(--ambar); }
+      .tarjeta { margin: 0; display: grid; gap: 8px; border-left: 3px solid var(--ambar); }
+      .tarjeta::before { display: none; }
       .tarjeta.agotado { border-left-color: var(--rojo); }
       .cabeza { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
       .cifras { display: flex; gap: 16px; }

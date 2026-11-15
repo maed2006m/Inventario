@@ -1,0 +1,118 @@
+/* Tablero en cuadrícula bento. La base .bento-card, .pill y las variables viven en styles.scss. */
+.cabecera { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.cabecera h1, .cabecera p { margin: 0; }
+
+/* 12 columnas en escritorio, 6 en tableta y 1 en teléfono */
+.bento { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
+.kpi { grid-column: span 2; }
+.flujo, .alertas { grid-column: span 6; }
+.tercio { grid-column: span 4; }
+@media (max-width: 1280px) {
+  .bento { grid-template-columns: repeat(6, 1fr); }
+  .tercio { grid-column: span 3; }
+  .tercio:last-child { grid-column: span 6; }
+}
+@media (max-width: 700px) {
+  .bento { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .kpi { grid-column: span 1; }
+  .flujo, .alertas, .tercio, .tercio:last-child { grid-column: 1 / -1; }
+}
+
+/* ---------- Fichas de indicadores ---------- */
+.kpi { padding: 14px 16px; display: grid; gap: 6px; }
+.kpi span { color: var(--gris); font-size: 0.8rem; }
+.kpi strong { font-family: var(--mono); font-size: clamp(1rem, 1.25vw, 1.3rem); font-weight: 500; overflow-wrap: anywhere; }
+.kpi.ambar strong { color: var(--ambar); }
+.kpi.rojo strong { color: var(--rojo); }
+
+/* ---------- Botones y enlaces ---------- */
+.boton { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 0 14px; border: 1px solid var(--borde);
+  border-radius: 10px; background: rgba(255, 255, 255, 0.04); color: var(--texto); font: 500 0.82rem var(--fuente);
+  text-decoration: none; cursor: pointer; white-space: nowrap; transition: border-color 0.2s, background 0.2s, box-shadow 0.2s; }
+.boton:hover:not(:disabled) { border-color: var(--borde-activo); background: var(--azul-claro); }
+.boton:disabled { opacity: 0.6; cursor: progress; }
+.boton .mat-icon { font-size: 18px; width: 18px; height: 18px; }
+.boton.primario { min-height: 44px; padding: 0 18px; border-color: transparent; background: var(--azul); font-size: 0.9rem; box-shadow: 0 8px 24px -8px rgba(59, 130, 246, 0.7); }
+.boton.primario:hover { background: #2563eb; }
+.enlace { display: inline-block; margin-top: 12px; color: #60a5fa; font-size: 0.85rem; text-decoration: none; }
+.enlace:hover { text-decoration: underline; }
+.boton:focus-visible, .enlace:focus-visible, .nodo:focus-visible { outline: 2px solid var(--azul); outline-offset: 2px; }
+
+/* ---------- 1. Flujo de inventario ---------- */
+.flujo { overflow: hidden; background: radial-gradient(420px 220px at 50% 45%, rgba(37, 99, 235, 0.16), transparent 70%), var(--tarjeta); }
+.diagrama { display: flex; align-items: center; padding: 14px 0 6px; }
+.nodo { flex: 0 0 auto; width: 96px; padding: 12px 6px; display: grid; justify-items: center; gap: 2px; box-sizing: border-box;
+  border: 1px solid var(--borde); border-radius: 14px; background: var(--tarjeta-alta); color: var(--texto); text-decoration: none; transition: border-color 0.2s, transform 0.2s; }
+.nodo:hover { border-color: var(--borde-activo); transform: translateY(-2px); }
+.nodo .mat-icon { color: var(--gris); }
+.nodo strong { font-family: var(--mono); font-size: 1.25rem; font-weight: 600; }
+.nodo span { color: var(--gris); font-size: 0.75rem; }
+.nodo.central { width: 112px; padding: 18px 6px; border-color: var(--borde-activo); box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.08), 0 0 44px rgba(59, 130, 246, 0.45); animation: latir 3s ease-in-out infinite; }
+.nodo.central .mat-icon { color: #60a5fa; }
+.nodo.entrada .mat-icon { color: var(--verde); }
+.nodo.salida .mat-icon { color: #a78bfa; }
+@keyframes latir { 50% { box-shadow: 0 0 0 9px rgba(59, 130, 246, 0.05), 0 0 60px rgba(59, 130, 246, 0.6); } }
+
+/* Conexión punteada con un punto de luz que la recorre */
+.linea { --c: var(--azul); position: relative; flex: 1 1 24px; min-width: 18px; height: 2px;
+  background: repeating-linear-gradient(90deg, var(--c) 0 5px, transparent 5px 11px); opacity: 0.75; animation: correr 0.9s linear infinite; }
+.linea.verde { --c: #10b981; }
+.linea.morado { --c: var(--morado); }
+.linea::after { content: ''; position: absolute; top: -3px; left: 0; width: 8px; height: 8px; border-radius: 50%; background: var(--c);
+  box-shadow: 0 0 12px 3px var(--c); animation: viajar 2.4s linear infinite; }
+.linea.morado::after { animation-delay: 1.2s; }
+@keyframes correr { to { background-position: 11px 0; } }
+@keyframes viajar { from { left: 0; opacity: 0; } 15%, 85% { opacity: 1; } to { left: calc(100% - 8px); opacity: 0; } }
+
+/* Bifurcación hacia entradas y salidas, unida por una línea vertical */
+.ramas { flex: 1.4 1 0; display: grid; gap: 14px; position: relative; }
+.ramas::before { content: ''; position: absolute; left: 0; top: 25%; bottom: 25%; border-left: 2px dashed rgba(59, 130, 246, 0.5); }
+.rama { display: flex; align-items: center; }
+.nota { margin: 12px 0 0; }
+
+/* ---------- 2. Alertas ---------- */
+.lista, .rotacion, .leyenda, .consola { list-style: none; margin: 0; padding: 0; }
+.lista li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--borde); }
+.lista li:first-child { border-top: 0; padding-top: 0; }
+.detalle { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.detalle strong { font-weight: 500; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.detalle .mono { color: var(--gris); font-size: 0.72rem; }
+.cifra { font-size: 1.05rem; }
+.cifra small { color: var(--gris); font-size: 0.8rem; }
+.barra { height: 4px; border-radius: 4px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.barra i { display: block; height: 100%; min-width: 2px; border-radius: 4px; background: #f59e0b; box-shadow: 0 0 10px #f59e0b; }
+.barra.rojo i { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
+.barra.azul { height: 6px; }
+.barra.azul i { background: linear-gradient(90deg, #2563eb, #60a5fa); box-shadow: 0 0 12px rgba(59, 130, 246, 0.9); }
+
+/* ---------- 3 a 5. Rotación, participación y movimientos ---------- */
+.rotacion { display: grid; gap: 12px; }
+.fila { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 5px; font-size: 0.85rem; }
+.fila .mono { color: var(--gris); }
+.dona { display: grid; gap: 12px; }
+.leyenda { display: grid; gap: 6px; font-size: 0.82rem; }
+.leyenda li { display: flex; align-items: center; gap: 8px; }
+.leyenda i { width: 10px; height: 10px; border-radius: 3px; }
+.leyenda li span:nth-child(2) { flex: 1; color: var(--gris); }
+.consola { font-size: 0.8rem; }
+.consola li { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-top: 1px solid var(--borde); }
+.consola li:first-child { border-top: 0; }
+.hora { color: var(--gris); font-size: 0.72rem; }
+.producto { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mas { color: var(--verde); }
+.menos { color: #a78bfa; }
+.acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.vacio .mat-icon { color: var(--gris); }
+
+@media (max-width: 480px) {
+  .nodo { width: 76px; }
+  .nodo.central { width: 84px; }
+  .lista li { flex-wrap: wrap; }
+  .lista .boton { flex: 1 0 100%; }
+}
+
+/* Esqueletos de carga (la animación .esqueleto está en styles.scss) */
+.cargando { display: grid; gap: 12px; }
+.esqueleto.alto { height: 22px; }
+.esqueleto.fila-alta { height: 34px; }
+.esqueleto.circulo { width: 130px; height: 130px; border-radius: 50%; justify-self: center; }

@@ -1,0 +1,89 @@
+<!-- La clase "dividido" dispara la transición de portada a pantalla dividida (ver CSS). -->
+<div class="login" [class.dividido]="dividido()">
+  <!-- Panel de marca: ocupa el 100 % al cargar y se reduce al 50 % (encabezado en móvil). -->
+  <section class="marca" aria-label="Inventario Tienda de Barrio">
+    <svg class="logo" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" aria-hidden="true">
+      <!-- Caja de inventario en perspectiva -->
+      <path d="M8 20 32 7l24 13v24L32 57 8 44z" />
+      <path d="M8 20l24 13 24-13M32 33v24" />
+      <path class="cinta" d="M20 13.5 44 26.5v9" />
+    </svg>
+    <div class="lema">
+      <strong>Inventario Tienda de Barrio</strong>
+      <span>La existencia no se digita: se calcula.</span>
+    </div>
+  </section>
+
+  <!-- Panel del formulario: entra desde la derecha con desvanecido. -->
+  <main class="acceso">
+    <form class="formulario" [formGroup]="form" (ngSubmit)="entrar()" novalidate>
+      <h1>Bienvenido de nuevo</h1>
+      <p class="subtitulo">Ingrese para controlar el inventario de su tienda.</p>
+
+      <div class="campo" [class.con-error]="invalido('username')">
+        <label for="username">Usuario</label>
+        <input
+          id="username"
+          type="text"
+          formControlName="username"
+          autocomplete="username"
+          placeholder="Su nombre de usuario"
+          [attr.aria-invalid]="invalido('username')"
+        />
+        @if (invalido('username')) {
+          <small role="alert">El usuario es obligatorio</small>
+        }
+      </div>
+
+      <div class="campo" [class.con-error]="invalido('password')">
+        <label for="password">Contraseña</label>
+        <div class="con-icono">
+          <input
+            id="password"
+            [type]="ver() ? 'text' : 'password'"
+            formControlName="password"
+            autocomplete="current-password"
+            placeholder="Su contraseña"
+            [attr.aria-invalid]="invalido('password')"
+          />
+          <button
+            type="button"
+            class="ojo"
+            (click)="ver.set(!ver())"
+            [attr.aria-label]="ver() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+            [attr.aria-pressed]="ver()"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+              <circle cx="12" cy="12" r="3" />
+              @if (ver()) {
+                <path d="M4 4l16 16" />
+              }
+            </svg>
+          </button>
+        </div>
+        @if (invalido('password')) {
+          <small role="alert">La contraseña es obligatoria</small>
+        }
+      </div>
+
+      <!-- Error del servidor (credenciales incorrectas, sin conexión, etc.) -->
+      @if (error()) {
+        <div class="alerta" role="alert">
+          <strong>{{ error()!.message }}</strong>
+          <span>{{ error()!.accion }}</span>
+        </div>
+      }
+
+      <button type="submit" class="principal" [disabled]="cargando()" [attr.aria-busy]="cargando()">
+        @if (cargando()) {
+          <span class="girador" aria-hidden="true"></span> Ingresando…
+        } @else {
+          Iniciar sesión
+        }
+      </button>
+
+      <p class="demo">Usuarios de demostración: admin / Admin123* · tendero / Tendero123*</p>
+    </form>
+  </main>
+</div>

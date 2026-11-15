@@ -1,69 +1,50 @@
 import { DecimalPipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
+import { MatIconModule } from '@angular/material/icon';
 import { ChartConfiguration } from 'chart.js';
+import { errorDeApi } from '../../core/errores';
 import { Participacion } from '../../core/models';
 import { ReportesService } from '../../core/reportes.service';
 import { FormatoMonedaPipe } from '../../shared/formato-moneda.pipe';
 import { GraficoComponent, PALETA } from '../../shared/grafico.component';
 
-/** Participación por proveedor (HU13, RF-26) y concentración HHI. */
+/** Tope visual del medidor: por encima de este HHI el marcador queda al final. */
+const TOPE_MEDIDOR = 5000;
+
+/**
+ * Participación por proveedor (HU13, RF-26) y concentración HHI.
+ * El HHI y el nivel de concentración llegan calculados del backend; aquí solo se dibujan.
+ */
 @Component({
   selector: 'app-participacion',
   standalone: true,
-  imports: [GraficoComponent, FormatoMonedaPipe, DecimalPipe],
-  template: `
-    @if (datos(); as d) {
-      <div class="rejilla-2 arriba">
-        <section class="panel">
-          <h2>Valor del inventario por proveedor</h2>
-          @if (grafico(); as g) {
-            <app-grafico [config]="g" [alto]="320" titulo="Participación por proveedor" />
-          }
-        </section>
-        <section class="panel">
-          <h2>Concentración de proveedores</h2>
-          <div [class]="'hhi ' + d.nivelConcentracion.toLowerCase()">
-            <span class="valor">{{ d.indiceHhi | number: '1.0-0' }}</span>
-            <span>HHI · concentración {{ d.nivelConcentracion.toLowerCase() }}</span>
-          </div>
-          <p>{{ lectura[d.nivelConcentracion] }}</p>
-          <p>Valor total del inventario: <strong>{{ d.valorTotalInventario | moneda }}</strong></p>
-          <p class="ayuda">HHI = suma de las participaciones al cuadrado. Menos de 1.500 es baja, de 1.500 a 2.500 moderada y más de 2.500 alta. Con 5 proveedores parejos el HHI es 2.000.</p>
-          <table class="simple">
-            <thead><tr><th>Proveedor</th><th class="num">Valor</th><th class="num">%</th></tr></thead>
-            <tbody>
-              @for (p of d.proveedores; track p.proveedorId) {
-                <tr><td>{{ p.proveedorNombre }}</td><td class="num">{{ p.valorInventario | moneda }}</td><td class="num">{{ p.participacionPct }}</td></tr>
-              }
-            </tbody>
-          </table>
-        </section>
-      </div>
-    } @else {
-      <p class="vacio">Cargando…</p>
-    }
-  `,
-  styles: [
-    `
-      .arriba { margin-top: 16px; }
-      .hhi { display: flex; align-items: baseline; gap: 10px; padding: 12px; border-radius: 8px; background: var(--verde-claro); }
-      .hhi .valor { font-size: 2rem; font-weight: 500; }
-      .hhi.moderada { background: var(--ambar-claro); }
-      .hhi.alta { background: var(--rojo-claro); }
-      table.simple { width: 100%; border-collapse: collapse; }
-      table.simple th, table.simple td { padding: 8px 10px; border-bottom: 1px solid var(--borde); text-align: left; }
-      table.simple .num { text-align: right; }
-    `
-  ]
+  imports: [GraficoComponent, FormatoMonedaPipe, DecimalPipe, MatIconModule],
+  templateUrl: './participacion.component.html',
+  styleUrl: './participacion.component.css'
 })
 export class ParticipacionComponent {
   private api = inject(ReportesService);
+
+  readonly paleta = PALETA;
   datos = signal<Participacion | null>(null);
+  error = signal<{ message: string; accion: string } | null>(null);
+
   lectura: Record<string, string> = {
     BAJA: 'El inventario está repartido entre varios proveedores: el riesgo de depender de uno es bajo.',
     MODERADA: 'Dependencia moderada: conviene tener un proveedor alterno para los productos que más se venden.',
     ALTA: 'Alta dependencia de pocos proveedores: si uno falla, gran parte del inventario queda en riesgo.'
   };
+  /** Color de la píldora según el nivel de concentración. */
+  claseNivel: Record<string, string> = { BAJA: 'verde', MODERADA: 'ambar', ALTA: 'rojo' };
+
+  /** Proveedor con mayor participación (la API los entrega de mayor a menor valor). */
+  principal = computed(() => {
+    const p = this.datos()?.proveedores ?? [];
+    return p.length ? p.reduce((a, b) => (b.participacionPct > a.participacionPct ? b : a)) : null;
+  });
+
+  /** Posición del marcador del medidor, de 0 a 100. */
+  marcador = computed(() => Math.min(100, ((this.datos()?.indiceHhi ?? 0) / TOPE_MEDIDOR) * 100));
 
   grafico = computed<ChartConfiguration | null>(() => {
     const p = this.datos()?.proveedores ?? [];
@@ -73,14 +54,18 @@ export class ParticipacionComponent {
     return {
       type: 'doughnut',
       data: {
-        labels: p.map((x) => `${x.proveedorNombre} (${x.participacionPct}%)`),
-        datasets: [{ data: p.map((x) => x.valorInventario), backgroundColor: PALETA }]
+        labels: p.map((x) => x.proveedorNombre),
+        datasets: [{ data: p.map((x) => x.valorInventario), backgroundColor: PALETA, borderWidth: 0, hoverOffset: 8 }]
       },
-      options: { plugins: { legend: { position: 'bottom' } } }
-    };
+      // La leyenda se dibuja en HTML junto al gráfico.
+      options: { cutout: '66%', plugins: { legend: { display: false } } }
+    } as ChartConfiguration;
   });
 
   constructor() {
-    this.api.participacion().subscribe((c) => this.datos.set(c));
+    this.api.participacion().subscribe({
+      next: (c) => this.datos.set(c),
+      error: (e) => this.error.set(errorDeApi(e))
+    });
   }
 }

@@ -20,3 +20,13 @@ export function fechaIso(d: Date): string {
   const p = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
+
+/** Color de la píldora (.pill de styles.scss) para cada motivo y tipo de movimiento. */
+export const CLASE_MOTIVO: Record<MotivoMovimiento, string> = {
+  COMPRA: 'verde',
+  VENTA: 'morado',
+  AVERIA: 'ambar',
+  VENCIMIENTO: 'rojo'
+};
+
+export const CLASE_TIPO: Record<TipoMovimiento, string> = { ENTRADA: 'verde', SALIDA: 'morado' };

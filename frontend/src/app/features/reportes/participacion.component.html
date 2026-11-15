@@ -1,0 +1,92 @@
+@if (datos(); as d) {
+  <!-- Resumen -->
+  <div class="tarjetas arriba">
+    <div class="tarjeta-kpi"><div class="etiqueta">Valor total del inventario</div><div class="valor">{{ d.valorTotalInventario | moneda }}</div></div>
+    <div class="tarjeta-kpi"><div class="etiqueta">Proveedores con inventario</div><div class="valor">{{ d.proveedores.length }}</div></div>
+    <div class="tarjeta-kpi">
+      <div class="etiqueta">Mayor participación</div>
+      <div class="valor texto">{{ principal()?.proveedorNombre ?? '—' }}</div>
+      @if (principal(); as p) {
+        <div class="ayuda mono">{{ p.participacionPct }}%</div>
+      }
+    </div>
+    <div class="tarjeta-kpi">
+      <div class="etiqueta">Índice HHI</div>
+      <div class="valor">{{ d.indiceHhi | number: '1.0-0' }}</div>
+    </div>
+  </div>
+
+  @if (d.proveedores.length === 0) {
+    <div class="panel vacio-grande">
+      <mat-icon>donut_large</mat-icon>
+      <strong>Aún no hay inventario valorizado</strong>
+      <span class="ayuda">Registre entradas de compra para ver cómo se reparte entre los proveedores.</span>
+    </div>
+  } @else {
+    <div class="rejilla-2">
+      <!-- Dona con leyenda propia -->
+      <section class="panel">
+        <h2 class="bento-titulo"><mat-icon>donut_large</mat-icon> Valor del inventario por proveedor</h2>
+        @if (grafico(); as g) {
+          <app-grafico [config]="g" [alto]="240" titulo="Participación por proveedor" />
+        }
+        <ul class="leyenda">
+          @for (p of d.proveedores; track p.proveedorId; let i = $index) {
+            <li>
+              <div class="fila">
+                <span class="nombre"><i [style.background]="paleta[i % paleta.length]"></i>{{ p.proveedorNombre }}</span>
+                <span class="mono">{{ p.valorInventario | moneda }} · <strong>{{ p.participacionPct }}%</strong></span>
+              </div>
+              <div class="barra"><i [style.width.%]="p.participacionPct" [style.background]="paleta[i % paleta.length]"></i></div>
+            </li>
+          }
+        </ul>
+      </section>
+
+      <!-- Medidor de concentración -->
+      <section class="panel">
+        <h2 class="bento-titulo">
+          <mat-icon>speed</mat-icon> Concentración de proveedores
+          <span class="espacio"></span>
+          <span [class]="'pill ' + claseNivel[d.nivelConcentracion]">{{ d.nivelConcentracion.toLowerCase() }}</span>
+        </h2>
+        <div class="cifra-hhi">
+          <strong>{{ d.indiceHhi | number: '1.0-0' }}</strong><span>HHI</span>
+        </div>
+        <div
+          class="medidor"
+          role="img"
+          [attr.aria-label]="'Índice HHI ' + (d.indiceHhi | number: '1.0-0') + ', concentración ' + d.nivelConcentracion.toLowerCase()"
+        >
+          <span class="zona baja"></span><span class="zona moderada"></span><span class="zona alta"></span>
+          <span class="aguja" [style.left.%]="marcador()"></span>
+        </div>
+        <div class="escala mono" aria-hidden="true">
+          <span style="left: 0">0</span><span style="left: 30%">1.500</span><span style="left: 50%">2.500</span><span style="left: 100%">5.000+</span>
+        </div>
+        <div class="zonas">
+          <span><i class="baja"></i>Baja</span><span><i class="moderada"></i>Moderada</span><span><i class="alta"></i>Alta</span>
+        </div>
+        <p class="lectura">{{ lectura[d.nivelConcentracion] }}</p>
+        <p class="ayuda">
+          HHI = suma de las participaciones al cuadrado. Menos de 1.500 es baja, de 1.500 a 2.500 moderada y más de 2.500 alta.
+          Con 5 proveedores parejos el HHI es 2.000.
+        </p>
+      </section>
+    </div>
+  }
+} @else if (error()) {
+  <div class="error-servidor arriba" role="alert"><strong>{{ error()!.message }}</strong>{{ error()!.accion }}</div>
+} @else {
+  <!-- Esqueletos mientras llega el reporte -->
+  <div class="tarjetas arriba" aria-label="Cargando reporte">
+    @for (i of [1, 2, 3, 4]; track i) {
+      <div class="tarjeta-kpi relleno"><i class="esqueleto" style="width: 60%"></i><i class="esqueleto" style="height: 24px; width: 40%"></i></div>
+    }
+  </div>
+  <div class="rejilla-2">
+    @for (i of [1, 2]; track i) {
+      <div class="panel relleno"><i class="esqueleto" style="width: 50%"></i><i class="esqueleto" style="height: 240px"></i></div>
+    }
+  </div>
+}

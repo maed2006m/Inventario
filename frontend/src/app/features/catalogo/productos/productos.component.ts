@@ -83,7 +83,7 @@ import { ProductoDialogComponent } from './producto-dialog.component';
         <table mat-table [dataSource]="productos()">
           <ng-container matColumnDef="sku">
             <th mat-header-cell *matHeaderCellDef class="ocultar-movil">SKU</th>
-            <td mat-cell *matCellDef="let p" class="ocultar-movil">{{ p.sku }}</td>
+            <td mat-cell *matCellDef="let p" class="ocultar-movil mono">{{ p.sku }}</td>
           </ng-container>
           <ng-container matColumnDef="nombre">
             <th mat-header-cell *matHeaderCellDef>Producto</th>
@@ -137,7 +137,7 @@ import { ProductoDialogComponent } from './producto-dialog.component';
       <p class="ayuda">{{ productos().length }} productos · la existencia se calcula con entradas menos salidas.</p>
     </div>
   `,
-  styles: [`.enlace { background: none; border: 0; padding: 0; color: #1a56a8; cursor: pointer; font: inherit; text-align: left; }`]
+  styles: [`.enlace { background: none; border: 0; padding: 0; color: #60a5fa; cursor: pointer; font: inherit; text-align: left; }`]
 })
 export class ProductosComponent {
   private api = inject(InventarioService);

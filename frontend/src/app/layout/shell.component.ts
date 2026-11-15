@@ -46,7 +46,12 @@ interface Opcion {
         [attr.role]="'navigation'"
       >
         <div class="marca">
-          <mat-icon>storefront</mat-icon>
+          <!-- Mismo logo de la caja que usa el inicio de sesión -->
+          <svg class="logo" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round" aria-hidden="true">
+            <path d="M8 20 32 7l24 13v24L32 57 8 44z" />
+            <path d="M8 20l24 13 24-13M32 33v24" />
+            <path class="cinta" d="M20 13.5 44 26.5v9" />
+          </svg>
           <span>Mi Tienda</span>
         </div>
         <mat-nav-list>
@@ -83,12 +88,18 @@ interface Opcion {
   styles: [
     `
       .contenedor { height: 100vh; }
-      .lateral { width: 232px; background: #fff; border-right: 1px solid var(--borde); }
-      .marca { display: flex; align-items: center; gap: 8px; padding: 18px 16px; font-weight: 500; font-size: 1.1rem;
-        color: var(--verde); }
-      .activo { background: var(--verde-claro) !important; }
-      .cabecera { position: sticky; top: 0; z-index: 2; background: #fff; border-bottom: 1px solid var(--borde); gap: 8px; }
-      .titulo { font-size: 1rem; font-weight: 500; }
+      .contenedor { background: transparent; }
+      .lateral { width: 264px; border-right: 1px solid var(--borde); --mdc-list-list-item-label-text-size: 0.9rem; }
+      .marca { display: flex; align-items: center; gap: 8px; padding: 18px 16px; font-weight: 600; font-size: 1.1rem;
+        color: var(--texto); }
+      .marca { gap: 10px; }
+      .logo { width: 30px; height: 30px; filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.7)); }
+      .logo .cinta { stroke: #60a5fa; }
+      .lateral a { margin: 2px 8px; width: calc(100% - 16px); border-radius: 10px; }
+      .activo { background: var(--azul-claro) !important; box-shadow: inset 2px 0 0 var(--azul); }
+      .cabecera { position: sticky; top: 0; z-index: 2; border-bottom: 1px solid var(--borde); gap: 8px;
+        backdrop-filter: blur(10px); }
+      .titulo { font-size: 1rem; font-weight: 600; }
       .espacio { flex: 1; }
       .usuario { font-size: 0.85rem; color: var(--gris); }
     `

@@ -1,27 +1,147 @@
-/* Estilos globales. Paleta propia sobre el tema indigo-pink de Angular Material. */
+/* Estilos globales: tema oscuro tipo "bento" (fondo azul negro, tarjetas modulares con brillo). */
+@use '@angular/material' as mat;
+
+/* ---------- Angular Material en oscuro, con el azul del sistema como color primario ---------- */
+$azul: (
+  50: #eff6ff, 100: #dbeafe, 200: #bfdbfe, 300: #93c5fd, 400: #60a5fa,
+  500: #3b82f6, 600: #2563eb, 700: #1d4ed8, 800: #1e40af, 900: #1e3a8a,
+  contrast: (50: #0f172a, 100: #0f172a, 200: #0f172a, 300: #0f172a, 400: #0f172a,
+    500: #fff, 600: #fff, 700: #fff, 800: #fff, 900: #fff)
+);
+$tema-oscuro: mat.define-dark-theme((
+  color: (
+    primary: mat.define-palette($azul, 500, 300, 700),
+    accent: mat.define-palette(mat.$deep-purple-palette, A200, A100, A400),
+    warn: mat.define-palette(mat.$red-palette, 400)
+  )
+));
+/* Solo colores: tipografía y densidad siguen viniendo del tema precompilado de angular.json. */
+@include mat.all-component-colors($tema-oscuro);
+
+/* ---------- Variables del sistema de diseño ---------- */
 :root {
-  --verde: #1f6f5c;
-  --verde-claro: #e6f2ee;
-  --ambar: #a35c00;
-  --ambar-claro: #fff3e0;
-  --rojo: #b3261e;
-  --rojo-claro: #fdecea;
-  --gris: #5f6368;
-  --borde: #e0e0e0;
-  --fondo: #f6f7f9;
+  --fondo: #080b14;
+  --tarjeta: #0f1523;
+  --tarjeta-alta: #151c2e;
+  --borde: rgba(255, 255, 255, 0.08);
+  --borde-activo: rgba(59, 130, 246, 0.55);
+  --texto: #f8fafc;
+  --gris: #94a3b8;
+  --azul: #3b82f6;
+  --azul-claro: rgba(59, 130, 246, 0.14);
+  --morado: #8b5cf6;
+  --morado-claro: rgba(139, 92, 246, 0.16);
+  /* Los nombres verde/ámbar/rojo se conservan porque los usan las demás vistas. */
+  --verde: #34d399;
+  --verde-claro: rgba(16, 185, 129, 0.14);
+  --ambar: #fbbf24;
+  --ambar-claro: rgba(245, 158, 11, 0.14);
+  --rojo: #f87171;
+  --rojo-claro: rgba(239, 68, 68, 0.14);
+  --radio: 16px;
+  --fuente: 'Inter', Roboto, 'Helvetica Neue', sans-serif;
+  --mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  color-scheme: dark;
 }
 
-html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, 'Helvetica Neue', sans-serif; background: var(--fondo); color: #1f2328; }
+/* Superficies de Material sobre la paleta propia (por defecto serían grises neutros). */
+html {
+  --mat-app-background-color: var(--fondo);
+  --mat-sidenav-container-background-color: #0b101c;
+  --mat-sidenav-content-background-color: transparent;
+  --mat-sidenav-container-divider-color: var(--borde);
+  --mat-toolbar-container-background-color: rgba(8, 11, 20, 0.82);
+  --mat-table-background-color: transparent;
+  --mat-table-row-item-outline-color: var(--borde);
+  --mat-paginator-container-background-color: transparent;
+  --mat-menu-container-color: var(--tarjeta-alta);
+  --mat-select-panel-background-color: var(--tarjeta-alta);
+  --mat-autocomplete-background-color: var(--tarjeta-alta);
+  --mat-datepicker-calendar-container-background-color: var(--tarjeta-alta);
+  --mat-standard-button-toggle-background-color: var(--tarjeta);
+  --mat-standard-button-toggle-selected-state-background-color: var(--azul-claro);
+  --mat-standard-button-toggle-divider-color: var(--borde);
+  --mdc-dialog-container-color: var(--tarjeta);
+  --mdc-outlined-text-field-outline-color: rgba(255, 255, 255, 0.16);
+  --mat-divider-color: var(--borde);
+  /* Formas redondeadas en botones y campos */
+  --mdc-filled-button-container-shape: 10px;
+  --mdc-outlined-button-container-shape: 10px;
+  --mdc-text-button-container-shape: 10px;
+  --mdc-outlined-text-field-container-shape: 10px;
+  --mdc-outlined-button-outline-color: rgba(255, 255, 255, 0.16);
+}
+/* El botón principal lleva el mismo brillo que el del tablero */
+.mat-mdc-unelevated-button.mat-primary:not(:disabled) { box-shadow: 0 8px 24px -10px rgba(59, 130, 246, 0.8); }
 
-.pagina { padding: 16px; max-width: 1280px; margin: 0 auto; box-sizing: border-box; }
-.pagina h1 { font-size: 1.5rem; font-weight: 500; margin: 4px 0 16px; }
-.barra-acciones { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 12px; }
+html, body { height: 100%; }
+body {
+  margin: 0; font-family: var(--fuente); color: var(--texto);
+  /* Degradados radiales azul cobalto detrás del contenido */
+  background:
+    radial-gradient(900px 520px at 18% -8%, rgba(37, 99, 235, 0.12), transparent 70%),
+    radial-gradient(760px 480px at 100% 30%, rgba(37, 99, 235, 0.08), transparent 70%),
+    var(--fondo);
+  background-attachment: fixed;
+}
+.mono, td.num, th.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.mdc-dialog__surface { border: 1px solid var(--borde); border-radius: var(--radio) !important; }
+
+/* ---------- Tarjeta bento: base reutilizable con brillo al pasar el cursor ---------- */
+.bento-card, .panel, .tarjeta-kpi, .tabla-contenedor, .barra-acciones {
+  position: relative; min-width: 0; box-sizing: border-box;
+  background: var(--tarjeta); border: 1px solid var(--borde); border-radius: var(--radio);
+  box-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.8);
+  transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+}
+/* Línea de luz vertical en el borde izquierdo */
+.bento-card { padding: 20px; }
+.bento-card::before, .panel::before, .tarjeta-kpi::before {
+  content: ''; position: absolute; left: -1px; top: 18%; bottom: 18%; width: 1px; pointer-events: none;
+  background: linear-gradient(transparent, var(--azul), transparent); opacity: 0; transition: opacity 0.25s;
+}
+.bento-card:hover, .panel:hover, .tarjeta-kpi:hover, .tabla-contenedor:hover, .barra-acciones:focus-within { border-color: var(--borde-activo); box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.12), 0 18px 44px -20px rgba(37, 99, 235, 0.55); }
+.bento-card:hover::before, .panel:hover::before, .tarjeta-kpi:hover::before { opacity: 1; }
+/* Una tarjeta dentro de otra no repite marco ni brillo */
+.panel .tabla-contenedor, .panel .panel { background: none; border: 0; box-shadow: none; border-radius: 0; }
+.bento-titulo { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; font-size: 0.95rem; font-weight: 600; color: var(--texto); }
+.bento-titulo .mat-icon { color: var(--azul); font-size: 20px; width: 20px; height: 20px; }
+.bento-titulo .espacio { flex: 1; }
+
+/* Píldoras de estado (siempre con texto, nunca solo color) */
+.pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+.pill.verde { background: var(--verde-claro); color: var(--verde); }
+.pill.morado { background: var(--morado-claro); color: #a78bfa; }
+.pill.ambar { background: var(--ambar-claro); color: var(--ambar); }
+.pill.rojo { background: var(--rojo-claro); color: var(--rojo); }
+.pill.azul { background: var(--azul-claro); color: #60a5fa; }
+.pill.gris { background: rgba(148, 163, 184, 0.14); color: var(--gris); }
+
+/* Esqueleto de carga: bloque gris con un destello que lo recorre */
+.esqueleto {
+  display: block; height: 14px; border-radius: 8px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.13) 50%, rgba(255, 255, 255, 0.05) 75%);
+  background-size: 200% 100%; animation: destello 1.4s linear infinite;
+}
+@keyframes destello { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* ---------- Clases compartidas por las vistas existentes ---------- */
+.pagina { padding: 20px; max-width: 1320px; margin: 0 auto; box-sizing: border-box; }
+.pagina h1 { display: flex; align-items: center; gap: 12px; font-size: 1.5rem; font-weight: 600; letter-spacing: -0.01em; margin: 4px 0 16px; }
+/* Marca luminosa junto al título de cada pantalla */
+.pagina > h1::before { content: ''; width: 4px; height: 1.2em; border-radius: 4px; background: var(--azul); box-shadow: 0 0 14px var(--azul); }
+/* Barra de filtros como tarjeta */
+.barra-acciones { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 16px; padding: 14px 16px; }
 .barra-acciones .espacio { flex: 1; }
 
 /* RNF-02: las tablas se desplazan horizontalmente en pantallas pequeñas */
-.tabla-contenedor { overflow-x: auto; background: #fff; border-radius: 8px; border: 1px solid var(--borde); }
+.tabla-contenedor { overflow-x: auto; }
 .tabla-contenedor table { width: 100%; }
+/* Encabezados discretos y filas que se iluminan al pasar el cursor */
+.tabla-contenedor th, table.simple th, table.mini th { color: var(--gris) !important; font-size: 0.72rem !important; font-weight: 600 !important;
+  text-transform: uppercase; letter-spacing: 0.06em; font-family: var(--fuente) !important; }
+.tabla-contenedor tbody tr, table.simple tbody tr { transition: background 0.15s; }
+.tabla-contenedor tbody tr:hover, table.simple tbody tr:hover { background: rgba(59, 130, 246, 0.07); }
 td.num, th.num { text-align: right; }
 
 /* En teléfono se ocultan las columnas secundarias */
@@ -35,17 +155,21 @@ td.num, th.num { text-align: right; }
 .tactil button { min-height: 44px; }
 
 .tarjetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
-.tarjeta-kpi { background: #fff; border: 1px solid var(--borde); border-radius: 8px; padding: 14px 16px; }
+.tarjeta-kpi { padding: 14px 16px; }
 .tarjeta-kpi .etiqueta { color: var(--gris); font-size: 0.85rem; }
-.tarjeta-kpi .valor { font-size: 1.6rem; font-weight: 500; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.tarjeta-kpi .valor { font-family: var(--mono); font-size: 1.5rem; font-weight: 500; margin-top: 4px; font-variant-numeric: tabular-nums; }
 .tarjeta-kpi.alerta .valor { color: var(--ambar); }
 .tarjeta-kpi.peligro .valor { color: var(--rojo); }
 
-.panel { background: #fff; border: 1px solid var(--borde); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
-.panel h2 { font-size: 1.1rem; font-weight: 500; margin: 0 0 12px; }
+.panel { padding: 20px; margin-bottom: 16px; }
+.panel h2 { font-size: 1.1rem; font-weight: 600; margin: 0 0 12px; }
 .rejilla-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
 
-.error-servidor { background: var(--rojo-claro); color: var(--rojo); border-radius: 6px; padding: 12px 14px; margin: 8px 0; }
+.error-servidor { background: var(--rojo-claro); color: var(--rojo); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 10px; padding: 12px 14px; margin: 8px 0; }
 .error-servidor strong { display: block; }
 .ayuda { color: var(--gris); font-size: 0.85rem; }
 .vacio { color: var(--gris); padding: 24px; text-align: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

@@ -56,7 +56,7 @@ import { ProveedorDialogComponent } from './proveedor-dialog.component';
           </ng-container>
           <ng-container matColumnDef="nit">
             <th mat-header-cell *matHeaderCellDef>NIT</th>
-            <td mat-cell *matCellDef="let p">{{ p.nit }}</td>
+            <td mat-cell *matCellDef="let p" class="mono">{{ p.nit }}</td>
           </ng-container>
           <ng-container matColumnDef="telefono">
             <th mat-header-cell *matHeaderCellDef class="ocultar-movil">Teléfono</th>
@@ -72,7 +72,7 @@ import { ProveedorDialogComponent } from './proveedor-dialog.component';
           </ng-container>
           <ng-container matColumnDef="estado">
             <th mat-header-cell *matHeaderCellDef>Estado</th>
-            <td mat-cell *matCellDef="let p">{{ p.activo ? 'Activo' : 'Inactivo' }}</td>
+            <td mat-cell *matCellDef="let p"><span class="pill" [class.verde]="p.activo" [class.gris]="!p.activo">{{ p.activo ? '● Activo' : '○ Inactivo' }}</span></td>
           </ng-container>
           <ng-container matColumnDef="acciones">
             <th mat-header-cell *matHeaderCellDef></th>
