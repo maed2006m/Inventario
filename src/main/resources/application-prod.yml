@@ -9,6 +9,14 @@
 # - Los secretos NO tienen valor por defecto: si falta alguna
 #   variable de entorno la aplicacion no arranca, en lugar de
 #   quedar desplegada con una contrasena conocida.
+# La aplicacion esta detras de Nginx (y a veces de un tunel https).
+# Spring usa X-Forwarded-Proto/Host para conocer la URL que ve el
+# navegador. Sin esto, la peticion https://dominio llega como
+# http://dominio:80, Spring cree que viene de otro origen y CORS la
+# rechaza con 403 "Invalid CORS request".
+server:
+  forward-headers-strategy: framework
+
 spring:
   datasource:
     url: ${DB_URL}
