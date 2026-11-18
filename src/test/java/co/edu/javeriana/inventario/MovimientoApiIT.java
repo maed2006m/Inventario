@@ -197,6 +197,111 @@ String sufijo = String.valueOf(java.util.concurrent.ThreadLocalRandom.current().
                 .andExpect(jsonPath("$.estado").value("BAJO_STOCK"));
     }
 
+    @Test
+    @DisplayName("RN-02: vender un producto agotado responde 409 indicando que esta agotado")
+    void ventaDeProductoAgotado() throws Exception {
+
+        long id = crearProductoNuevo();
+
+        enviar(HttpMethod.POST, "/api/movimientos", tokenTendero(),
+                Map.of("productoId", id, "tipo", "SALIDA", "motivo", "VENTA", "cantidad", 1))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.accion").value(
+                        "El producto esta agotado: registre antes una entrada de compra."));
+    }
+
+    @Test
+    @DisplayName("RN-04: un motivo que no corresponde al tipo de movimiento responde 409")
+    void motivoIncoherenteConElTipo() throws Exception {
+
+        long id = crearProductoNuevo();
+
+        enviar(HttpMethod.POST, "/api/movimientos", tokenTendero(),
+                Map.of("productoId", id, "tipo", "ENTRADA", "motivo", "VENTA", "cantidad", 1))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.accion").isNotEmpty());
+
+        enviar(HttpMethod.POST, "/api/movimientos", tokenTendero(),
+                Map.of("productoId", id, "tipo", "SALIDA", "motivo", "COMPRA", "cantidad", 1))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.accion").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("RN-13: sin valor unitario, la compra usa el costo y la venta el precio de venta")
+    void valorUnitarioPorDefecto() throws Exception {
+
+        long id = crearProductoNuevo();   // costo 1000, precio 1500
+
+        enviar(HttpMethod.POST, "/api/movimientos", tokenTendero(),
+                Map.of("productoId", id, "tipo", "ENTRADA", "motivo", "COMPRA", "cantidad", 5))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.valorUnitario").value(1000));
+
+        enviar(HttpMethod.POST, "/api/movimientos", tokenTendero(),
+                Map.of("productoId", id, "tipo", "SALIDA", "motivo", "VENTA", "cantidad", 1))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.valorUnitario").value(1500));
+
+        enviar(HttpMethod.POST, "/api/movimientos", tokenTendero(),
+                Map.of("productoId", id, "tipo", "SALIDA", "motivo", "VENCIMIENTO", "cantidad", 1))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.valorUnitario").value(1000));
+    }
+
+    @Test
+    @DisplayName("RN-08: un producto deshabilitado solo admite bajas por averia o vencimiento")
+    void productoDeshabilitadoSoloAdmiteBajas() throws Exception {
+
+        long id = crearProductoNuevo();
+
+        enviar(HttpMethod.POST, "/api/movimientos", tokenTendero(),
+                Map.of("productoId", id, "tipo", "ENTRADA", "motivo", "COMPRA", "cantidad", 5))
+                .andExpect(status().isCreated());
+
+        enviar(HttpMethod.DELETE, "/api/productos/" + id, tokenTendero(), null)
+                .andExpect(status().isNoContent());
+
+        enviar(HttpMethod.POST, "/api/movimientos", tokenTendero(),
+                Map.of("productoId", id, "tipo", "SALIDA", "motivo", "VENTA", "cantidad", 1))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.accion").isNotEmpty());
+
+        enviar(HttpMethod.POST, "/api/movimientos", tokenTendero(),
+                Map.of("productoId", id, "tipo", "SALIDA", "motivo", "AVERIA", "cantidad", 1))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.existenciaResultante").value(4));
+    }
+
+    @Test
+    @DisplayName("RF-20: registrar un movimiento de un producto inexistente responde 404")
+    void movimientoDeProductoInexistente() throws Exception {
+
+        enviar(HttpMethod.POST, "/api/movimientos", tokenTendero(),
+                Map.of("productoId", 999_999_999L, "tipo", "ENTRADA", "motivo", "COMPRA", "cantidad", 1))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.accion").isNotEmpty());
+    }
+
+    /**
+     * El usuario del movimiento sale del token, no del cuerpo. Si el
+     * token es valido pero el usuario ya no existe, no se registra nada.
+     */
+    @Test
+    @DisplayName("RF-20: un token de un usuario que ya no existe no puede registrar movimientos")
+    void movimientoConUsuarioInexistente() throws Exception {
+
+        long id = crearProductoNuevo();
+        String fantasma = "Bearer " + jwt.generar("fantasma", "TENDERO");
+
+        enviar(HttpMethod.POST, "/api/movimientos", fantasma,
+                Map.of("productoId", id, "tipo", "ENTRADA", "motivo", "COMPRA", "cantidad", 1))
+                .andExpect(status().isNotFound());
+
+        enviar(HttpMethod.GET, "/api/productos/" + id, tokenTendero(), null)
+                .andExpect(jsonPath("$.existencia").value(0));
+    }
+
     // ---------- inmutabilidad ----------
 
     @Test

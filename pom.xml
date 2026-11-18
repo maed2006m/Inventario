@@ -206,8 +206,10 @@
 							<goal>report</goal>
 						</goals>
 					</execution>
-					<!-- La compilacion falla si la cobertura baja del 70%.
-					     Sin esta regla el plugin solo genera el reporte y
+					<!-- La compilacion falla si la cobertura baja de los minimos:
+					     - proyecto completo: 90% de lineas y 70% de ramas;
+					     - paquete service (reglas de negocio): 70% de ramas.
+					     Sin estas reglas el plugin solo genera el reporte y
 					     nada impide que la cobertura caiga. -->
 					<execution>
 						<id>check</id>
@@ -222,6 +224,24 @@
 									<limits>
 										<limit>
 											<counter>LINE</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>0.90</minimum>
+										</limit>
+										<limit>
+											<counter>BRANCH</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>0.70</minimum>
+										</limit>
+									</limits>
+								</rule>
+								<rule>
+									<element>PACKAGE</element>
+									<includes>
+										<include>co.edu.javeriana.inventario.service</include>
+									</includes>
+									<limits>
+										<limit>
+											<counter>BRANCH</counter>
 											<value>COVEREDRATIO</value>
 											<minimum>0.70</minimum>
 										</limit>

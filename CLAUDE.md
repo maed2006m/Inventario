@@ -17,7 +17,7 @@ Backend (run from repo root; use `mvnw.cmd` on Windows/PowerShell):
 ```
 
 - Integration tests (`*IT.java`, extend `IntegracionBase`) use Testcontainers with `postgres:16`; **Docker must be running**. The container is a static singleton shared across all IT classes. Do not change that, or later classes hit a stopped database.
-- `verify` fails if JaCoCo line coverage drops below 70%.
+- `verify` fails if JaCoCo coverage drops below 90% lines or 70% branches (whole project), or below 70% branches in the `service` package.
 - Swagger UI: `http://localhost:8080/swagger-ui.html`. A Postman collection is in `postman/`.
 
 Database defaults (overridable via `DB_URL`, `DB_USER`, `DB_PASSWORD`, `JWT_SECRET`): `jdbc:postgresql://localhost:5432/inventario_tienda`, user/password `inventario`. Seeded users (V2 migration): `admin` / `Admin123*` (ADMIN), `tendero` / `Tendero123*` (TENDERO).
@@ -53,7 +53,7 @@ There is no stock column. Existence = sum of ENTRADA minus SALIDA movements, com
 - `test`: `db/migration` only. Integration tests start from an empty DB and create their own data, so never make tests depend on demo data.
 
 ### Errors
-Services throw domain exceptions (`BusinessRuleException` → 409, `ResourceNotFoundException` → 404, `SolicitudInvalidaException` → 400, `CredencialesInvalidasException` → 401). `GlobalExceptionHandler` turns them into a uniform `ApiError` body that includes `message`, `accion` (a corrective action for the user) and an optional `campos` map for `@Valid` failures. New business errors should supply an `accion`. 401 and 403 are produced by Spring Security in `SecurityConfig`, not by the advice. Don't catch security exceptions there.
+Services throw domain exceptions (`BusinessRuleException` → 409, `ResourceNotFoundException` → 404, `SolicitudInvalidaException` → 400, `CredencialesInvalidasException` → 401). `GlobalExceptionHandler` turns them into a uniform `ApiError` body that includes `message`, `accion` (a corrective action for the user) and an optional `campos` map for `@Valid` failures. New business errors should supply an `accion`. Malformed requests are client errors, never 500: unreadable body or wrong-typed URL parameter → 400 (with the offending field in `campos`), unknown route → 404, non-JSON body → 415; these messages are built by hand and must not echo Jackson/Spring exception text (it leaks internal class names). Covered by `ErroresApiIT`. 401 and 403 are produced by Spring Security in `SecurityConfig`, not by the advice. Don't catch security exceptions there.
 
 ### Security
 Stateless JWT (`JwtService`, `JwtAuthFilter`). Roles are `ADMIN` and `TENDERO`. The whole permission matrix is in `SecurityConfig.authorizeHttpRequests`: ADMIN-only rules (PUT/DELETE proveedores, `/api/movimientos/export`, `/api/reportes/**`, `/api/analitica/**`) must come before `anyRequest().authenticated()`. CORS allows `http://localhost:4200` and exposes `Content-Disposition` for CSV downloads.
