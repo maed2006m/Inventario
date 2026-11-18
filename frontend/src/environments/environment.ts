@@ -4,5 +4,7 @@
  */
 export const environment = {
   production: false,
-  apiUrl: '/api'
+  apiUrl: '/api',
+  /** En desarrollo el login muestra los usuarios de demostración (V2__usuarios_iniciales.sql). */
+  usuariosDemo: 'admin / Admin123* · tendero / Tendero123*' as string | null
 };

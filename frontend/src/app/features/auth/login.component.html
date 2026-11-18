@@ -83,7 +83,9 @@
         }
       </button>
 
-      <p class="demo">Usuarios de demostración: admin / Admin123* · tendero / Tendero123*</p>
+      @if (usuariosDemo) {
+        <p class="demo">Usuarios de demostración: {{ usuariosDemo }}</p>
+      }
     </form>
   </main>
 </div>
