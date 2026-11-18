@@ -8,11 +8,13 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -82,6 +84,46 @@ class ReporteApiIT extends IntegracionBase {
         String tipo = resultado.getResponse().getContentType();
         assertNotNull(tipo);
         assertTrue(tipo.contains("csv"), "Se esperaba un CSV pero llego: " + tipo);
+    }
+
+    @Test
+    @DisplayName("RN-15: la rotacion con la fecha inicial posterior a la final responde 400")
+    void rotacionConFechasInvertidas() throws Exception {
+        mvc.perform(get("/api/reportes/rotacion")
+                        .param("desde", "2026-06-30")
+                        .param("hasta", "2026-06-01")
+                        .header(HttpHeaders.AUTHORIZATION, tokenAdmin()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").isNotEmpty())
+                .andExpect(jsonPath("$.accion").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("RN-15: la rotacion de un periodo mayor a 366 dias responde 400")
+    void rotacionConPeriodoExcesivo() throws Exception {
+        mvc.perform(get("/api/reportes/rotacion")
+                        .param("desde", "2024-01-01")
+                        .param("hasta", "2025-12-31")
+                        .header(HttpHeaders.AUTHORIZATION, tokenAdmin()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(containsString("731")));
+
+        // Solo 'desde': 'hasta' toma la fecha de hoy y el periodo sigue siendo excesivo
+        mvc.perform(get("/api/reportes/rotacion")
+                        .param("desde", "2020-01-01")
+                        .header(HttpHeaders.AUTHORIZATION, tokenAdmin()))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("HU15: exportar con la fecha inicial posterior a la final responde 400 antes de transmitir")
+    void exportarConFechasInvertidas() throws Exception {
+        mvc.perform(get("/api/movimientos/export")
+                        .param("desde", "2026-06-30T00:00:00Z")
+                        .param("hasta", "2026-06-01T00:00:00Z")
+                        .header(HttpHeaders.AUTHORIZATION, tokenAdmin()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.accion").isNotEmpty());
     }
 
     @Test
