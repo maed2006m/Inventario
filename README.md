@@ -20,7 +20,8 @@ La regla central del sistema es que **la existencia nunca se digita, se calcula*
 8. [Pruebas automatizadas](#8-pruebas-automatizadas)
 9. [Estructura del proyecto](#9-estructura-del-proyecto)
 10. [Flujo de trabajo en Git](#10-flujo-de-trabajo-en-git)
-11. [Consideraciones finales](#11-consideraciones-finales)
+11. [Despliegue en producción](#11-despliegue-en-producción)
+12. [Consideraciones finales](#12-consideraciones-finales)
 
 ---
 
@@ -258,7 +259,62 @@ Todo cambio entra a `develop` mediante un **pull request** revisado y con las pr
 
 ---
 
-## 11. Consideraciones finales
+## 11. Despliegue en producción
+
+La aplicación se despliega en tres contenedores Docker. Solo el frontend publica un puerto:
+
+```
+Navegador ─:80─► frontend (Nginx + Angular) ─/api─► backend (Spring Boot) ─► db (PostgreSQL 16)
+```
+
+| Archivo | Para qué sirve |
+| --- | --- |
+| `Dockerfile` | Imagen del backend: copia el JAR sobre `eclipse-temurin:21-jre` |
+| `frontend/Dockerfile` | Compila Angular con Node y lo sirve con Nginx |
+| `frontend/nginx.conf` | Reenvía `/api` al backend y sirve las rutas de Angular |
+| `docker-compose.yml` | Define los tres servicios, el volumen de la base y el puerto 80 |
+| `.env.example` | Variables necesarias (el `.env` real no se sube a Git) |
+| `Jenkinsfile` | Pipeline: Build → Pruebas → Docker Build → Deploy → Comprobación |
+| `jenkins/` | Jenkins en un contenedor, con Docker y Java 21 |
+
+### Perfil `prod`
+
+El backend se ejecuta con `SPRING_PROFILES_ACTIVE=prod` (lo fija el `Dockerfile`):
+
+- No carga los datos de demostración (`db/demo`).
+- Todas las variables del `.env` son obligatorias: si falta una, la aplicación no arranca.
+- Las contraseñas de `admin` y `tendero` se reemplazan al arrancar por `ADMIN_PASSWORD` y `TENDERO_PASSWORD`. Las de la sección 6 solo sirven en desarrollo.
+
+### Despliegue manual
+
+```bash
+cp .env.example .env              # y poner contraseñas propias
+./mvnw clean package -DskipTests  # genera el JAR que copia el Dockerfile
+docker compose up -d --build
+```
+
+La aplicación queda en `http://localhost`. Para ver el estado: `docker compose ps` y `docker compose logs backend`.
+
+`docker compose down` detiene los contenedores y conserva los datos. `docker compose down -v` **borra también la base de datos**.
+
+### Despliegue automático con Jenkins
+
+1. Levantar Jenkins (puerto 9090, para no chocar con el 8080 de la aplicación):
+
+   ```bash
+   docker compose -f jenkins/docker-compose.yml up -d --build
+   ```
+
+   Si el grupo `docker` del equipo no tiene el GID 140 (`getent group docker`), defina `DOCKER_GID` antes del comando.
+2. En `http://localhost:9090`, crear una credencial **Secret file** con id `inventario-env` que contenga el `.env`.
+3. Crear un trabajo tipo **Pipeline** → *Pipeline script from SCM* → Git → este repositorio, rama `*/main`, *Script Path* `Jenkinsfile`.
+4. En *Triggers*, activar **Poll SCM** con `H/5 * * * *`: Jenkins revisa `main` cada 5 minutos y despliega cada cambio.
+
+Si una prueba falla, el pipeline se detiene en la etapa *Pruebas* y no despliega: la versión anterior sigue funcionando.
+
+---
+
+## 12. Consideraciones finales
 
 - La instalación requiere configurar correctamente Java, PostgreSQL y las variables de conexión antes de iniciar la aplicación.
 - Antes de usar el sistema, verifique los registros de ejecución, las migraciones y las pruebas de los endpoints.
