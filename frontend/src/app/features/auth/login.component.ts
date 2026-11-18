@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { errorDeApi } from '../../core/errores';
+import { environment } from '../../../environments/environment';
 
 /** Tiempo que la portada ocupa toda la pantalla antes de dividirse (ms). */
 const ESPERA_PORTADA_MS = 500;
@@ -33,6 +34,8 @@ export class LoginComponent implements OnInit, OnDestroy {
   /** Muestra u oculta el texto de la contraseña. */
   ver = signal(false);
   cargando = signal(false);
+  /** Solo en desarrollo: en producción las contraseñas de demostración ya no sirven. */
+  readonly usuariosDemo = environment.usuariosDemo;
   error = signal<{ message: string; accion: string } | null>(null);
 
   form = this.fb.nonNullable.group({

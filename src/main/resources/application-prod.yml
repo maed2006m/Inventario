@@ -1,0 +1,32 @@
+# Perfil de produccion (Entrega 3 - despliegue).
+#
+# Se activa con SPRING_PROFILES_ACTIVE=prod (lo hace docker-compose).
+#
+# Diferencias con el perfil dev:
+# - flyway.locations NO incluye classpath:db/demo: la base de
+#   produccion arranca sin datos de demostracion.
+# - No se imprime el SQL en el log.
+# - Los secretos NO tienen valor por defecto: si falta alguna
+#   variable de entorno la aplicacion no arranca, en lugar de
+#   quedar desplegada con una contrasena conocida.
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+  jpa:
+    show-sql: false
+    properties:
+      hibernate.format_sql: false
+  flyway:
+    locations: classpath:db/migration
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+  # V2__usuarios_iniciales.sql crea admin y tendero con las contrasenas
+  # de demostracion. En produccion CredencialesProduccion las reemplaza
+  # al arrancar por las de estas variables.
+  usuarios:
+    admin-password: ${ADMIN_PASSWORD}
+    tendero-password: ${TENDERO_PASSWORD}

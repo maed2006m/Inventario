@@ -1,0 +1,60 @@
+# Despliegue de produccion (Entrega 3).
+#
+#   Navegador --:80--> frontend (Nginx + Angular) --/api--> backend (Spring Boot) --> db (PostgreSQL)
+#
+# Solo el frontend publica un puerto. La base y el backend quedan en la
+# red interna de Docker y no se pueden alcanzar desde afuera.
+#
+# Uso:
+#   cp .env.example .env      # y poner contrasenas propias
+#   ./mvnw clean package      # genera el JAR que copia el Dockerfile
+#   docker compose up -d --build
+#
+# "up -d" reemplaza los contenedores que cambiaron. Por eso se usa compose
+# en lugar del "docker run -d -p 8080:8080" de la guia, que falla en la
+# segunda ejecucion porque el contenedor anterior sigue ocupando el puerto.
+name: inventario
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: inventario_tienda
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - datos-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: .
+    image: inventario-backend:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://db:5432/inventario_tienda
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      TENDERO_PASSWORD: ${TENDERO_PASSWORD}
+
+  frontend:
+    build: ./frontend
+    image: inventario-frontend:latest
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+volumes:
+  datos-postgres:

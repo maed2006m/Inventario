@@ -1,0 +1,13 @@
+# La imagen del backend solo necesita target/*.jar.
+# Excluir el resto hace que "docker build" envie menos datos y sea mas rapido.
+.git
+.github
+.claude
+.mvn
+frontend
+postman
+src
+*.md
+.env
+target/*
+!target/inventario-0.0.1-SNAPSHOT.jar
