@@ -13,6 +13,23 @@ export interface LoginResponse {
   expiraEnMinutos: number;
 }
 
+/** Cuenta de la tienda (RF-30). Nunca trae la contraseña ni su hash. */
+export interface Usuario {
+  id: number;
+  username: string;
+  nombre: string;
+  rol: Rol;
+  activo: boolean;
+  creadoEn: string;
+}
+
+export interface UsuarioRequest {
+  username: string;
+  nombre: string;
+  password: string;
+  rol: Rol;
+}
+
 export interface ApiError {
   status: number;
   error: string;

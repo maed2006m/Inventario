@@ -158,8 +158,10 @@ Usuarios creados para el entorno de desarrollo:
 
 | Rol | Usuario | Contraseña | Permisos |
 |---|---|---|---|
-| ADMIN | `admin` | `Admin123*` | Todo, incluida la edición e inactivación de proveedores, los reportes y la exportación a CSV |
+| ADMIN | `admin` | `Admin123*` | Todo, incluida la edición e inactivación de proveedores, los reportes, la exportación a CSV y la gestión de cuentas |
 | TENDERO | `tendero` | `Tendero123*` | Operación diaria: productos, movimientos y consultas |
+
+Además, el ADMIN puede crear más cuentas de tendero o de administrador desde la pestaña **Usuarios** (`/api/usuarios`, RF-30), y desactivarlas o reactivarlas. Todas las cuentas pertenecen a la misma tienda: un segundo ADMIN es un socio del mismo negocio, no otra tienda. Las cuentas no se borran, porque sus movimientos quedan en el historial, y nadie puede desactivar su propia cuenta. Una cuenta desactivada ya no puede iniciar sesión; si tenía una sesión abierta, su token sigue siendo válido hasta que vence (120 minutos como máximo).
 
 > ⚠️ Estas credenciales son solo para desarrollo y pruebas. Antes de desplegar en un entorno real se deben cambiar las contraseñas y definir un `JWT_SECRET` seguro mediante variables de entorno.
 

@@ -118,7 +118,8 @@ export class ShellComponent {
     { ruta: '/proveedores', texto: 'Proveedores', icono: 'local_shipping' },
     { ruta: '/movimientos', texto: 'Historial', icono: 'history' },
     { ruta: '/alertas', texto: 'Alertas de stock', icono: 'notifications_active' },
-    { ruta: '/reportes', texto: 'Reportes', icono: 'insights', soloAdmin: true }
+    { ruta: '/reportes', texto: 'Reportes', icono: 'insights', soloAdmin: true },
+    { ruta: '/usuarios', texto: 'Usuarios', icono: 'manage_accounts', soloAdmin: true }
   ];
 
   opciones = () => this.todas.filter((o) => !o.soloAdmin || this.auth.esAdmin());

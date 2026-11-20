@@ -3,6 +3,7 @@ package co.edu.javeriana.inventario.repository;
 import co.edu.javeriana.inventario.model.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -18,4 +19,9 @@ import java.util.Optional;
 public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     Optional<Usuario> findByUsername(String username);
+
+    boolean existsByUsernameIgnoreCase(String username);
+
+    /** Gestion de usuarios (RF-30): primero los ADMIN, luego por nombre. */
+    List<Usuario> findAllByOrderByRolAscNombreAsc();
 }
