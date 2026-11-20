@@ -155,7 +155,7 @@ class ReporteCsvServiceTest {
                 .thenReturn(new PageImpl<>(List.of(movimiento(2, "ok")), PageRequest.of(1, 1), 2));
 
         ByteArrayOutputStream salida = new ByteArrayOutputStream();
-        service.escribir(salida, null, null, null, null, null);
+        service.escribir(salida, null, null, null, null, null, null);
 
         String csv = salida.toString(StandardCharsets.UTF_8);
         String[] lineas = csv.split("\r\n");

@@ -65,10 +65,13 @@ public class ReporteCsvService {
      * Los filtros en null se ignoran. Orden: del más reciente al más antiguo.
      */
     @Transactional(readOnly = true)
-    public void escribir(OutputStream salida, Long productoId, TipoMovimiento tipo, MotivoMovimiento motivo,
+    public void escribir(OutputStream salida, Long productoId, Long proveedorId, TipoMovimiento tipo, MotivoMovimiento motivo,
                          OffsetDateTime desde, OffsetDateTime hasta) throws IOException {
         validar(desde, hasta);
-        Specification<Movimiento> filtro = MovimientoSpecs.filtrar(productoId, null, tipo, motivo, desde, hasta);
+        Specification<Movimiento> filtro =
+                MovimientoSpecs.filtrar(
+                        productoId, proveedorId, tipo, motivo, desde, hasta
+                );
         Sort orden = Sort.by(Sort.Direction.DESC, "fecha").and(Sort.by(Sort.Direction.DESC, "id"));
 
         Writer escritor = new BufferedWriter(new OutputStreamWriter(salida, StandardCharsets.UTF_8));

@@ -21,18 +21,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Pruebas de integracion de los reportes, el dashboard y la exportacion CSV.
  * Atraviesan filtro JWT, controlador, servicios y la base PostgreSQL real.
  */
-class ReporteApiIT extends IntegracionBase {
+class ReporteApiIT extends ApiIntegracionBase {
 
     @Autowired MockMvc mvc;
     @Autowired JwtService jwt;
 
-    private String tokenTendero() {
-        return "Bearer " + jwt.generar("tendero", "TENDERO");
-    }
-
-    private String tokenAdmin() {
-        return "Bearer " + jwt.generar("admin", "ADMIN");
-    }
 
     @Test
     @DisplayName("Admin consulta la rotacion con el rango por defecto")
@@ -147,5 +140,40 @@ class ReporteApiIT extends IntegracionBase {
                 .andExpect(status().isUnauthorized());
         mvc.perform(get("/api/dashboard/resumen"))
                 .andExpect(status().isUnauthorized());
+    }
+    @Test
+    @DisplayName("El CSV contiene solamente movimientos del proveedor seleccionado")
+    void exportarCsvPorProveedor() throws Exception {
+
+        long proveedor1 = crearProveedor();
+        long proveedor2 = crearProveedor();
+
+        String sku1 = "IT-" + sufijo();
+        String sku2 = "IT-" + sufijo();
+
+        long producto1 = crearProducto(proveedor1, sku1, null, 3);
+        long producto2 = crearProducto(proveedor2, sku2, null, 3);
+
+        registrar(producto1, "ENTRADA", "COMPRA", 10)
+                .andExpect(status().isCreated());
+
+        registrar(producto2, "ENTRADA", "COMPRA", 20)
+                .andExpect(status().isCreated());
+
+        MvcResult resultado = mvc.perform(get("/api/movimientos/export")
+                        .param("proveedorId", String.valueOf(proveedor1))
+                        .header(HttpHeaders.AUTHORIZATION, tokenAdmin()))
+                .andReturn();
+
+        if (resultado.getRequest().isAsyncStarted()) {
+            resultado = mvc.perform(asyncDispatch(resultado)).andReturn();
+        }
+
+        assertEquals(200, resultado.getResponse().getStatus());
+
+        String csv = resultado.getResponse().getContentAsString();
+
+        assertTrue(csv.contains(sku1));
+        assertTrue(!csv.contains(sku2));
     }
 }

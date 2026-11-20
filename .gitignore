@@ -37,4 +37,9 @@ hs_err_pid*
 replay_pid*
 
 ### Entorno ###
+.envpostman/resultados-entrega-final.json
+
 .env
+postman/resultados-entrega-final.json
+jmeter/*.jtl
+jmeter/reporte-*/

@@ -44,12 +44,13 @@ public class ReporteController {
     @GetMapping("/movimientos/export")
     public ResponseEntity<StreamingResponseBody> exportar(
             @RequestParam(required = false) Long productoId,
+            @RequestParam(required = false) Long proveedorId,
             @RequestParam(required = false) TipoMovimiento tipo,
             @RequestParam(required = false) MotivoMovimiento motivo,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime desde,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime hasta) {
         csv.validar(desde, hasta);   // antes de transmitir, para que un error salga como 400
-        StreamingResponseBody cuerpo = salida -> csv.escribir(salida, productoId, tipo, motivo, desde, hasta);
+        StreamingResponseBody cuerpo = salida -> csv.escribir(salida, productoId, proveedorId, tipo, motivo, desde, hasta);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=movimientos.csv")
                 .contentType(new MediaType("text", "csv"))
