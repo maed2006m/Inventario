@@ -52,4 +52,11 @@ public interface ProductoRepository extends JpaRepository<Producto, Long>,
 
     /** RN-07: cuantos productos activos tiene un proveedor. */
     long countByProveedorIdAndActivoTrue(Long proveedorId);
+    @Query("""
+    SELECT p.proveedor.id, COUNT(p)
+    FROM Producto p
+    WHERE p.activo = true
+    GROUP BY p.proveedor.id
+    """)
+    List<Object[]> contarProductosActivosPorProveedor();
 }

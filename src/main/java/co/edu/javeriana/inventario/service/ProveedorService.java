@@ -12,7 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-
+import java.util.Map;
+import java.util.HashMap;
 /**
  * Reglas de negocio de proveedores (RF-01 a RF-05).
  */
@@ -46,11 +47,16 @@ public class ProveedorService {
                 ? proveedores.findByActivoTrueOrderByNombre()
                 : proveedores.findAllByOrderByNombre();
 
+        Map<Long, Long> conteos = new HashMap<>();
+
+        for (Object[] fila : productos.contarProductosActivosPorProveedor()) {
+            conteos.put((Long) fila[0], (Long) fila[1]);
+        }
+
         return lista.stream()
-                .map(p -> aRespuesta(p, productos.countByProveedorIdAndActivoTrue(p.getId())))
+                .map(p -> aRespuesta(p, conteos.getOrDefault(p.getId(), 0L)))
                 .toList();
     }
-
     @Transactional(readOnly = true)
     public ProveedorResponse obtener(Long id) {
         Proveedor p = buscarOFallar(id);

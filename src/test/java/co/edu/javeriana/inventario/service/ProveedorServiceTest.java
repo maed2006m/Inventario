@@ -14,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -98,5 +99,31 @@ class ProveedorServiceTest {
         when(proveedores.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> service.obtener(99L));
+    }
+    @Test
+    @DisplayName("N+1: listar proveedores utiliza una sola consulta de conteos")
+    void listarProveedoresSinNMasUno() {
+
+        Proveedor p1 = andina();
+
+        Proveedor p2 = andina();
+        p2.setId(2L);
+        p2.setNombre("Distribuidora Central");
+
+        when(proveedores.findByActivoTrueOrderByNombre())
+                .thenReturn(List.of(p1, p2));
+
+        when(productos.contarProductosActivosPorProveedor())
+                .thenReturn(List.<Object[]>of(new Object[]{1L, 3L}));
+
+        var resultado = service.listar(true);
+
+        assertEquals(2, resultado.size());
+
+        verify(productos, times(1))
+                .contarProductosActivosPorProveedor();
+
+        verify(productos, never())
+                .countByProveedorIdAndActivoTrue(anyLong());
     }
 }
