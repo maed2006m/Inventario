@@ -70,6 +70,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/movimientos/export").hasRole("ADMIN")                 // HU15
                 .requestMatchers("/api/reportes/**").hasRole("ADMIN")                        // HU12, HU13
                 .requestMatchers("/api/analitica/**").hasRole("ADMIN")
+                .requestMatchers("/api/usuarios/**").hasRole("ADMIN")                       // RF-30
 
                 // --- Todo lo demas: autenticado, cualquier rol ---
                 .anyRequest().authenticated()

@@ -16,6 +16,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Locale;
+
 /**
  * Autenticacion (RNF-09, RNF-10).
  */
@@ -44,7 +46,9 @@ public class AuthController {
     @PostMapping("/login")
     public LoginResponse login(@Valid @RequestBody LoginRequest req) {
 
-        Usuario usuario = usuarios.findByUsername(req.username())
+        // Los usuarios se guardan en minusculas (RF-30); asi "Miguel",
+        // o la mayuscula que pone sola el teclado del telefono, tambien entra.
+        Usuario usuario = usuarios.findByUsername(req.username().trim().toLowerCase(Locale.ROOT))
                 .filter(Usuario::isActivo)
                 .filter(u -> encoder.matches(req.password(), u.getPasswordHash()))
                 .orElseThrow(CredencialesInvalidasException::new);
@@ -78,11 +82,6 @@ public class AuthController {
         Usuario usuario = usuarios.findByUsername(auth.getName())
                 .orElseThrow(CredencialesInvalidasException::new);
 
-        return new UsuarioResponse(
-                usuario.getId(),
-                usuario.getUsername(),
-                usuario.getNombre(),
-                usuario.getRol().name()
-        );
+        return UsuarioResponse.de(usuario);
     }
 }
